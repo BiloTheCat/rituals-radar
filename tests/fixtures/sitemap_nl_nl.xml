@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url><loc>https://www.rituals.com/nl-nl/bestsellers</loc><changefreq>daily</changefreq></url>
+  <url>
+    <loc>https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-1115587.html</loc>
+    <lastmod>2026-11-11T23:06:08Z</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <image:image><image:loc>https://www.rituals.com/assets/1115587/packshot.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://www.rituals.com/nl-nl/the-ritual-of-yozakura-foaming-shower-gel-1117148.html</loc>
+    <lastmod>2026-11-10T08:00:00Z</lastmod>
+  </url>
+  <url>
+    <loc>https://www.rituals.com/nl-nl/premium-advent-calendar-2026-1121936.html</loc>
+    <lastmod>2026-11-12T01:00:00Z</lastmod>
+  </url>
+  <url>
+    <loc>https://www.rituals.com/nl-nl/classic-advent-calendar-2026-1121933.html</loc>
+    <lastmod>2026-11-09T01:00:00Z</lastmod>
+  </url>
+  <url>
+    <loc>https://www.rituals.com/nl-nl/candle-surprise-box-1122493.html</loc>
+  </url>
+  <!-- duplicate entry, must be counted once -->
+  <url><loc>https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-1115587.html</loc></url>
+  <!-- other locale in the same file, must be ignored -->
+  <url><loc>https://www.rituals.com/en-nl/the-ritual-of-sakura-foaming-shower-gel-1115587.html</loc></url>
+</urlset>

@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local data from test runs (python -m radar ... --out landing_local)
+landing_local/
+*.jsonl.tmp
+
+# Databricks bundle state
+.databricks/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

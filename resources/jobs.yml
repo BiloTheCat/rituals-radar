@@ -1,0 +1,19 @@
+# Refreshes the pipeline four times a day. The collectors (GitHub Actions) land
+# new files every 3 hours; Auto Loader only processes what's new.
+resources:
+  jobs:
+    rituals_radar_refresh:
+      name: rituals-radar-refresh
+      max_concurrent_runs: 1
+      schedule:
+        quartz_cron_expression: "0 45 1/6 * * ?"  # 01:45, 07:45, 13:45, 19:45
+        timezone_id: Europe/Amsterdam
+        pause_status: UNPAUSED
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+      tasks:
+        - task_key: refresh_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.rituals_radar.id}
+            full_refresh: false

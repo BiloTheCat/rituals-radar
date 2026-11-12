@@ -1,0 +1,69 @@
+# Collects data and lands it in the Databricks volume.
+#   every 3 hours : stock check of the watchlist
+#   daily 05:45   : sitemap snapshot + social media
+# Secrets: Settings -> Secrets and variables -> Actions (see docs/HANDLEIDING.md).
+name: collect
+
+on:
+  schedule:
+    - cron: "15 */3 * * *"   # stock (UTC)
+    - cron: "45 5 * * *"     # catalog + social (UTC)
+  workflow_dispatch:
+    inputs:
+      command:
+        description: What to collect
+        type: choice
+        options: [stock, catalog, social, daily, all]
+        default: all
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Decide what to run
+        id: plan
+        env:  # passed via env (not inline ${{ }}) to avoid shell injection
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          REQUESTED: ${{ inputs.command }}
+        run: |
+          case "$EVENT_NAME:$SCHEDULE" in
+            workflow_dispatch:*) command="$REQUESTED" ;;
+            "schedule:45 5 * * *") command="daily" ;;
+            *) command="stock" ;;
+          esac
+          case "$command" in
+            stock|catalog|social|daily|all) echo "command=$command" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown command: $command" && exit 1 ;;
+          esac
+
+      - name: Run collectors
+        env:
+          COMMAND: ${{ steps.plan.outputs.command }}
+          PYTHONPATH: src/collectors
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          RADAR_HASH_SALT: ${{ secrets.RADAR_HASH_SALT }}
+        run: python -m radar "$COMMAND" --config config/radar.toml

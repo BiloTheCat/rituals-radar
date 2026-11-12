@@ -1,0 +1,15 @@
+# Schema and landing volume. Created by `databricks bundle deploy`.
+resources:
+  schemas:
+    rituals_radar:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Rituals Radar - stock and social media data (portfolio project)
+
+  volumes:
+    landing:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.rituals_radar.name}
+      name: landing
+      volume_type: MANAGED
+      comment: Landing zone. The collectors write raw JSON Lines here; Auto Loader picks them up.

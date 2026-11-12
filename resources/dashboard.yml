@@ -1,0 +1,9 @@
+# AI/BI dashboard, defined as code (src/dashboards/rituals_radar.lvdash.json).
+# Changed the dashboard in the UI? Pull the changes back into git with:
+#   databricks bundle generate dashboard --resource rituals_radar --force
+resources:
+  dashboards:
+    rituals_radar:
+      display_name: Rituals Radar
+      file_path: ../src/dashboards/rituals_radar.lvdash.json
+      warehouse_id: ${var.warehouse_id}
