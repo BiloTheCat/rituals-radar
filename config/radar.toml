@@ -1,0 +1,197 @@
+# Rituals Radar configuration
+# ---------------------------------------------------------------------------
+# Everything the collectors do is driven by this file. Secrets (API keys,
+# tokens) never go here: they are read from environment variables, which come
+# from GitHub secrets when the collectors run in GitHub Actions.
+
+[landing]
+# Unity Catalog volume created by the bundle (resources/infra.yml).
+# Override per run with --out ./some_local_folder (handy for testing).
+volume_path = "/Volumes/workspace/rituals_radar/landing"
+
+[site]
+base_url = "https://www.rituals.com"
+locale = "nl-nl"
+# Seconds between two requests to rituals.com. Be gentle: it's someone else's shop.
+delay_seconds = 3.0
+timeout_seconds = 20
+# Identify yourself honestly. Replace YOUR_GITHUB_NAME with your GitHub user name.
+user_agent = "RitualsRadar/1.0 (non-commercial portfolio project; +https://github.com/BiloTheCat/rituals-radar)"
+respect_robots_txt = true
+
+[watchlist]
+# Products whose stock is checked on every run. Use full product URLs (copy them
+# from your browser) or just the 7-digit number at the end of the URL; numbers
+# are looked up in the sitemap.
+products = [
+  # Seasonal products: November is advent-calendar season, so these may sell out.
+  "https://www.rituals.com/nl-nl/premium-advent-calendar-2026-1121936.html",
+  "https://www.rituals.com/nl-nl/classic-advent-calendar-2026-1121933.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-sakura---medium-gift-set-2026-1122151.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-sakura---small-gift-set-2026-1122150.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-yozakura---medium-gift-set-2026-1122154.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-yozakura---small-gift-set-2026-1122153.html",
+  "https://www.rituals.com/nl-nl/rituals-homme---medium-gift-set-2026-1122142.html",
+  "https://www.rituals.com/nl-nl/rituals-homme---small-gift-set-2026-1122143.html",
+  "https://www.rituals.com/nl-nl/candle-surprise-box-1122493.html",
+  "https://www.rituals.com/nl-nl/premium-surprise-box-1124196.html",
+  "https://www.rituals.com/nl-nl/shower-foam-discovery-value-pack-2026-1122826.html",
+  # One bestseller per collection: the foaming shower gel.
+  "https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-1115587.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-50ml-1115585.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-karma-foaming-shower-gel-1120249.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-jing-foaming-shower-gel-1119959.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-ayurveda-foaming-shower-gel-1120237.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-hammam-foaming-shower-gel-1120246.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-mehr-foaming-shower-gel-1115583.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-yozakura-foaming-shower-gel-1117148.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-seshen-foaming-shower-gel-1120568.html",
+  "https://www.rituals.com/nl-nl/amsterdam-collection-foaming-shower-gel-1115561.html",
+  "https://www.rituals.com/nl-nl/rituals-homme-shower-foam-1119072.html",
+  "https://www.rituals.com/nl-nl/velvet-oudh-foaming-shower-gel-1120014.html",
+  "https://www.rituals.com/nl-nl/uukumwe-collection-creamy-foaming-shower-gel-200ml-1121636.html",
+  # Other bestsellers.
+  "https://www.rituals.com/nl-nl/the-ritual-of-sakura-bath-foam-1117275.html",
+  "https://www.rituals.com/nl-nl/the-ritual-of-mehr-refill-fragrance-sticks-500ml-ecom-1121768.html",
+  # Older version of the Sakura shower gel. It showed as "OutOfStock" on 12 Nov 2026,
+  # which makes it a handy test of the out-of-stock path. Remove it whenever you like.
+  "https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-1116149.html",
+]
+# Optionally also follow every product of these collections (via the sitemap),
+# e.g. collections = ["advent"]. Capped by max_products.
+collections = []
+# Hard limit on product pages per run (≈ max_products × delay_seconds seconds).
+max_products = 40
+
+[brand]
+# A social post only counts as a Rituals mention when it contains one of these
+# terms (whole words, case-insensitive). Comments on a relevant video inherit
+# the video's relevance.
+terms = ["rituals", "ritualscosmetics", "rituals cosmetics", "the ritual of", "@rituals", "#rituals"]
+
+# ---------------------------------------------------------------------------
+# Collections (product lines). Keywords are matched as whole words, so
+# "sakura" does not match "yozakura". For products, the FIRST matching
+# collection in this file wins; social posts can match several.
+# ---------------------------------------------------------------------------
+[collections.advent]
+display_name = "Advent calendars"
+keywords = ["advent", "advent calendar", "adventskalender", "adventkalender"]
+
+[collections.yozakura]
+display_name = "The Ritual of Yozakura"
+keywords = ["yozakura"]
+
+[collections.sakura]
+display_name = "The Ritual of Sakura"
+keywords = ["sakura"]
+
+[collections.karma]
+display_name = "The Ritual of Karma"
+keywords = ["karma"]
+
+[collections.jing]
+display_name = "The Ritual of Jing"
+keywords = ["jing"]
+
+[collections.ayurveda]
+display_name = "The Ritual of Ayurveda"
+keywords = ["ayurveda"]
+
+[collections.hammam]
+display_name = "The Ritual of Hammam"
+keywords = ["hammam"]
+
+[collections.mehr]
+display_name = "The Ritual of Mehr"
+keywords = ["mehr"]
+
+[collections.namaste]
+display_name = "The Ritual of Namaste"
+keywords = ["namaste"]
+
+[collections.seshen]
+display_name = "The Ritual of Seshen"
+keywords = ["seshen"]
+
+[collections.amsterdam_collection]
+display_name = "Amsterdam Collection"
+keywords = ["amsterdam collection"]
+
+[collections.homme]
+display_name = "Rituals Homme"
+keywords = ["homme"]
+
+[collections.oudh]
+display_name = "Velvet Oudh"
+keywords = ["oudh", "velvet oudh"]
+
+[collections.private_collection]
+display_name = "Private Collection"
+keywords = ["private collection"]
+
+[collections.uukumwe]
+display_name = "Uukumwe Collection"
+keywords = ["uukumwe"]
+
+[collections.sport]
+display_name = "Rituals Sport"
+keywords = ["rituals sport"]
+
+# ---------------------------------------------------------------------------
+# Social media
+# ---------------------------------------------------------------------------
+[social]
+# Only content published in this window is collected (keeps API usage low).
+lookback_days = 7
+
+[social.youtube]
+# Free official API. Needs the YOUTUBE_API_KEY environment variable.
+enabled = true
+search_terms = [
+  "rituals sakura",
+  "rituals karma",
+  "rituals jing",
+  "rituals ayurveda",
+  "rituals hammam",
+  "rituals mehr",
+  "rituals yozakura",
+  "rituals homme",
+  "rituals advent calendar 2026",
+  "rituals adventskalender",
+  "rituals review",
+]
+max_videos_per_term = 5
+max_comments_per_video = 30
+region_code = "NL"
+relevance_language = ""   # e.g. "nl" to prefer Dutch-language videos
+
+[social.bluesky]
+# Free, open API. Works without login; with BLUESKY_HANDLE + BLUESKY_APP_PASSWORD
+# it uses an authenticated (more reliable) endpoint.
+enabled = true
+search_terms = [
+  "rituals sakura",
+  "rituals karma",
+  "rituals jing",
+  "rituals advent",
+  "rituals cosmetics",
+  "rituals douchegel",
+  "ritualscosmetics",
+]
+max_posts_per_term = 50
+
+[social.x]
+# PAID official API (about $0.005 per post read, billed by X).
+# Only runs when X_BEARER_TOKEN is set. max_posts_per_run is your cost cap:
+# 50 posts a day ≈ $0.25 a day ≈ $7.50 a month.
+enabled = true
+query = '"rituals" (sakura OR karma OR jing OR ayurveda OR hammam OR mehr OR yozakura OR advent OR homme OR oudh) -is:retweet'
+lookback_hours = 24
+max_posts_per_run = 50
+
+[social.tiktok]
+# TikTok has no public search API for individuals. Paste TikTok video links into
+# this file and the official oEmbed endpoint fetches each video's caption.
+enabled = true
+links_file = "config/tiktok_links.txt"
