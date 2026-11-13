@@ -25,11 +25,41 @@ from radar.rituals import PRODUCT_ID_RE, PRODUCT_URL_RE, slug_to_name
 from radar.util import iso, utc_now
 
 STOCK_HOURS = (0, 3, 6, 9, 12, 15, 18, 21)  # UTC check times, like the GitHub schedule
-SEASONAL_HINTS = ("advent", "gift-set", "surprise-box", "value-pack")
+SEASONAL_HINTS = ("uukumwe", "advent", "gift-set", "surprise-box", "value-pack")  # limited / seasonal
+
+# Real product URLs of the Uukumwe Collection (the Limited Edition on 13 Nov 2026),
+# used when the watchlist follows that collection. Sample data can't look in the
+# sitemap (no network), so other collections get a few made-up products.
+KNOWN_COLLECTION_SLUGS = {
+    "uukumwe": [
+        "uukumwe-collection-creamy-foaming-shower-gel-200ml-1121636",
+        "uukumwe-collection-rich-bath-and-shower-oil-200ml-1121639",
+        "uukumwe-collection-warming-body-scrub-220g-1121640",
+        "uukumwe-collection-rich-body-butter-220ml-1121645",
+        "uukumwe-collection-hydrating-2-phase-body-oil-180ml-1121646",
+        "uukumwe-collection-all-over-glow-balm-9g-1121648",
+        "uukumwe-collection-edp-50ml-1121649",
+        "uukumwe-collection-edp-15ml-1121650",
+        "uukumwe-collection-fragrance-sticks-400ml-1121652",
+        "uukumwe-collection-scented-candle-290g-1121653",
+        "uukumwe-collection-hand-wash-300ml-1121654",
+        "uukumwe-collection-tea-1121655",
+        "uukumwe-collection-all-over-fragrance-mist-100ml-1121940",
+        "uukumwe-collection-gift-set-1122351",
+    ],
+}
+
 
 # ---------------------------------------------------------------------------
 def _watch_products(cfg: Config, matcher: Matcher) -> list[dict]:
     products = []
+    for key in cfg.watchlist.collections:
+        slugs = KNOWN_COLLECTION_SLUGS.get(key) or [f"{key}-sample-product-{i}-11990{i:02d}" for i in range(1, 6)]
+        for slug_id in slugs:
+            slug, pid = slug_id.rsplit("-", 1)
+            url = f"{cfg.site.base_url}/{cfg.site.locale}/{slug}-{pid}.html"
+            products.append({"product_id": pid, "slug": slug, "url": url, "name": slug_to_name(slug),
+                             "collection": key})
     for item in cfg.watchlist.products:
         match = PRODUCT_URL_RE.match(item)
         if match:
@@ -45,7 +75,9 @@ def _watch_products(cfg: Config, matcher: Matcher) -> list[dict]:
 
 
 def _base_price(slug: str) -> float:
-    rules = [("premium-advent", 149.0), ("advent", 99.0), ("medium-gift-set", 39.9), ("small-gift-set", 24.9),
+    rules = [("edp-50ml", 69.9), ("edp-15ml", 29.9), ("gift-set", 49.9), ("candle", 34.9), ("tea", 9.9),
+             ("glow-balm", 24.9), ("body-oil", 32.9), ("body-butter", 29.9), ("body-scrub", 24.9), ("hand-wash", 15.9),
+             ("premium-advent", 149.0), ("advent", 99.0), ("medium-gift-set", 39.9), ("small-gift-set", 24.9),
              ("surprise-box", 49.9), ("value-pack", 29.9), ("50ml", 5.9), ("bath-foam", 19.9),
              ("fragrance-sticks", 34.9), ("shower", 10.9)]
     return next((price for key, price in rules if key in slug), 19.9)

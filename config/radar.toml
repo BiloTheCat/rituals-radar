@@ -20,46 +20,23 @@ user_agent = "RitualsRadar/1.0 (non-commercial portfolio project; +https://githu
 respect_robots_txt = true
 
 [watchlist]
-# Products whose stock is checked on every run. Use full product URLs (copy them
-# from your browser) or just the 7-digit number at the end of the URL; numbers
-# are looked up in the sitemap.
-products = [
-  # Seasonal products: November is advent-calendar season, so these may sell out.
-  "https://www.rituals.com/nl-nl/premium-advent-calendar-2026-1121936.html",
-  "https://www.rituals.com/nl-nl/classic-advent-calendar-2026-1121933.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-sakura---medium-gift-set-2026-1122151.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-sakura---small-gift-set-2026-1122150.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-yozakura---medium-gift-set-2026-1122154.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-yozakura---small-gift-set-2026-1122153.html",
-  "https://www.rituals.com/nl-nl/rituals-homme---medium-gift-set-2026-1122142.html",
-  "https://www.rituals.com/nl-nl/rituals-homme---small-gift-set-2026-1122143.html",
-  "https://www.rituals.com/nl-nl/candle-surprise-box-1122493.html",
-  "https://www.rituals.com/nl-nl/premium-surprise-box-1124196.html",
-  "https://www.rituals.com/nl-nl/shower-foam-discovery-value-pack-2026-1122826.html",
-  # One bestseller per collection: the foaming shower gel.
-  "https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-1115587.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-50ml-1115585.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-karma-foaming-shower-gel-1120249.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-jing-foaming-shower-gel-1119959.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-ayurveda-foaming-shower-gel-1120237.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-hammam-foaming-shower-gel-1120246.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-mehr-foaming-shower-gel-1115583.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-yozakura-foaming-shower-gel-1117148.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-seshen-foaming-shower-gel-1120568.html",
-  "https://www.rituals.com/nl-nl/amsterdam-collection-foaming-shower-gel-1115561.html",
-  "https://www.rituals.com/nl-nl/rituals-homme-shower-foam-1119072.html",
-  "https://www.rituals.com/nl-nl/velvet-oudh-foaming-shower-gel-1120014.html",
-  "https://www.rituals.com/nl-nl/uukumwe-collection-creamy-foaming-shower-gel-200ml-1121636.html",
-  # Other bestsellers.
-  "https://www.rituals.com/nl-nl/the-ritual-of-sakura-bath-foam-1117275.html",
-  "https://www.rituals.com/nl-nl/the-ritual-of-mehr-refill-fragrance-sticks-500ml-ecom-1121768.html",
-  # Older version of the Sakura shower gel. It showed as "OutOfStock" on 12 Nov 2026,
-  # which makes it a handy test of the out-of-stock path. Remove it whenever you like.
-  "https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-1116149.html",
-]
-# Optionally also follow every product of these collections (via the sitemap),
-# e.g. collections = ["advent"]. Capped by max_products.
-collections = []
+# What to track. Two ways, which can be combined:
+#
+# 1. collections: follow EVERY product of a collection. Products are looked up in
+#    the sitemap on each run, so new items in the collection are picked up
+#    automatically and removed items drop out.
+#    The current Limited Edition (the "Limited Edition" link in the rituals.com
+#    menu, checked 13 Nov 2026) is the Uukumwe Collection. When Rituals launches
+#    the next limited edition, add its keyword under [collections] below and
+#    put that key here.
+collections = ["uukumwe"]
+
+# 2. products: individual product URLs (copy them from your browser) or the
+#    7-digit number at the end of the URL. Examples you could add back:
+#      "https://www.rituals.com/nl-nl/premium-advent-calendar-2026-1121936.html",
+#      "https://www.rituals.com/nl-nl/classic-advent-calendar-2026-1121933.html",
+products = []
+
 # Hard limit on product pages per run (≈ max_products × delay_seconds seconds).
 max_products = 40
 

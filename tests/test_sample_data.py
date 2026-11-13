@@ -24,7 +24,7 @@ def test_sample_data_shape(cfg):
     assert all(r["is_sample"] is True for r in every)
 
     stock = data["rituals_stock"]
-    assert len({r["product_id"] for r in stock}) == len(cfg.watchlist.products)
+    assert len({r["product_id"] for r in stock}) == 14  # the Uukumwe limited edition
     assert max(r["scraped_at"] for r in stock) <= "2026-11-12T18:00:00Z"  # nothing in the future
     out_share = sum(not r["is_available"] for r in stock) / len(stock)
     assert 0.0 < out_share < 0.25, out_share

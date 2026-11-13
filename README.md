@@ -2,13 +2,13 @@
 
 **Stock monitoring for Rituals products, built end-to-end on Databricks Free Edition.**
 
-Every 3 hours the radar checks whether a watchlist of products is in stock on rituals.com/nl-nl and records price changes. Once a day it snapshots the sitemap to spot new and delisted products. A Lakeflow pipeline turns the raw checks into a compact stock history, stock-out periods with their duration, and scorecards per product and collection. An AI/BI dashboard sits on top.
+Every 3 hours the radar checks whether every product of the current **Limited Edition** (the Uukumwe Collection) is in stock on rituals.com/nl-nl and records price changes. The product list comes from the sitemap on each run, so new items in the collection are picked up automatically. Once a day it snapshots the sitemap to spot new and delisted products. A Lakeflow pipeline turns the raw checks into a compact stock history, stock-out periods with their duration, and scorecards per product and collection. An AI/BI dashboard sits on top.
 
 > Non-commercial portfolio project. It is not affiliated with Rituals Cosmetics.
 
 ## Questions it answers
 
-- Which products are sold out right now, since when, and how often did that happen in the last 30 days?
+- Which Limited Edition products are sold out right now, since when, and how often did that happen in the last 30 days?
 - Which collections are hardest to get?
 - How do prices and discounts change over time?
 - Which new products appeared in the catalogue?
@@ -74,7 +74,7 @@ Two pages, defined as code in `src/dashboards/rituals_radar.lvdash.json`:
 1. **Stock monitor:** KPIs, current status per product, availability trend for the six weakest collections, the products sold out longest, and what is sold out right now.
 2. **Collections & catalogue:** a scorecard per collection, availability per collection, products on discount, and new products in the sitemap.
 
-Until real data arrives, the dashboard runs on generated sample data (`is_sample = true`), in which seasonal products such as advent calendars and gift sets sell out more often as the season approaches.
+Until real data arrives, the dashboard runs on generated sample data (`is_sample = true`), in which limited and seasonal products sell out more often as the season approaches.
 
 ## Getting started
 

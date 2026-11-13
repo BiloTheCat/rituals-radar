@@ -172,7 +172,7 @@ Een *full refresh* leest alle bestanden in het volume opnieuw in. Er gaat dus ni
   - "De gratis Databricks kan geen websites bereiken. Daarom heb ik ingestion en verwerking gescheiden met een landing zone, net als in grote bedrijven."
   - "Voorraad wordt elke 3 uur gecheckt, maar ik sla alleen *veranderingen* op, met SCD Type 2 via AUTO CDC. Met een gaps-and-islands-query maak ik daar stock-out-periodes van."
   - "Collectors en pipeline delen een datacontract, en een test bewaakt dat ze gelijk blijven."
-- **LinkedIn:** een korte post met de screenshot, de architectuurtekening uit de README en één inzicht uit je data werkt goed, bijvoorbeeld hoe lang de adventskalenders uitverkocht waren.
+- **LinkedIn:** een korte post met de screenshot, de architectuurtekening uit de README en één inzicht uit je data werkt goed, bijvoorbeeld welk Limited Edition-product het snelst uitverkocht was.
 
 ---
 
@@ -183,6 +183,25 @@ Databricks noemt LinkedIn-verificatie als manier om sommige Free Edition-limiete
 1. Draai het notebook **`00_check_connectivity`**. Staat rituals.com op `reachable`? Ga dan door.
 2. Verplaats `resources/optional/collectors_in_databricks.yml` naar `resources/` en draai `databricks bundle deploy`.
 3. Haal in `.github/workflows/collect.yml` het blok `schedule:` weg, zodat niet allebei tegelijk draaien.
+
+---
+
+## Welke producten worden gevolgd?
+
+`config/radar.toml` volgt standaard **alle producten van de huidige Limited Edition**: de Uukumwe Collection (dat is waar het menu-item "Limited Edition" op rituals.com op 13 november 2026 naartoe ging). Bij elke run zoekt de collector in de sitemap alle producten met "uukumwe" in de URL op. Nieuwe producten komen er dus vanzelf bij.
+
+Komt er een nieuwe Limited Edition? Voeg die als collectie toe en zet hem in de watchlist:
+
+```toml
+[watchlist]
+collections = ["uukumwe", "nieuwe_collectie"]
+
+[collections.nieuwe_collectie]
+display_name = "Naam van de nieuwe collectie"
+keywords = ["woord-uit-de-product-url"]
+```
+
+Losse producten volgen kan ook: zet hun URL in `products = [...]`.
 
 ---
 

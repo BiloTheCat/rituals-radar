@@ -159,11 +159,28 @@ def test_resolve_watchlist_with_ids_and_collections(cfg, matcher):
 
 
 def test_default_watchlist_is_valid(cfg):
-    assert cfg.watchlist.products, "watchlist should not be empty"
+    assert cfg.watchlist.products or cfg.watchlist.collections, "watchlist should not be empty"
     for item in cfg.watchlist.products:
         assert rituals.PRODUCT_URL_RE.match(item) or rituals.PRODUCT_ID_RE.match(item), item
-    assert not rituals.needs_catalog(cfg)  # only URLs -> no sitemap download needed every 3 hours
-    assert len(rituals.resolve_watchlist(cfg, None)) == len(cfg.watchlist.products)
+    assert set(cfg.watchlist.collections) <= set(cfg.collections)
+
+
+def test_limited_edition_collection_is_resolved_from_the_sitemap(cfg, matcher):
+    sitemap = """<urlset>
+      <url><loc>https://www.rituals.com/nl-nl/uukumwe-collection-edp-50ml-1121649.html</loc><lastmod>2026-11-12T01:00:00Z</lastmod></url>
+      <url><loc>https://www.rituals.com/nl-nl/uukumwe-collection-gift-set-1122351.html</loc><lastmod>2026-11-11T01:00:00Z</lastmod></url>
+      <url><loc>https://www.rituals.com/nl-nl/the-ritual-of-sakura-foaming-shower-gel-1115587.html</loc></url>
+    </urlset>"""
+    session = FakeSession({
+        "https://www.rituals.com/sitemap.xml": FakeResponse(200, fixture_text("sitemap_index.xml")),
+        "https://www.rituals.com/nl-nl/sitemap-nl-nl.xml": FakeResponse(200, sitemap),
+    })
+    assert rituals.needs_catalog(cfg)
+    catalog = rituals.fetch_catalog(cfg, session, matcher, now=NOW, run_id="r1")
+    assert rituals.resolve_watchlist(cfg, catalog) == [
+        "https://www.rituals.com/nl-nl/uukumwe-collection-edp-50ml-1121649.html",
+        "https://www.rituals.com/nl-nl/uukumwe-collection-gift-set-1122351.html",
+    ]
 
 
 def test_breadcrumb_keeps_collection_crumbs():
