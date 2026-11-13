@@ -1,16 +1,15 @@
 # Lakeflow Spark Declarative Pipeline: landing files -> bronze -> silver -> gold.
 resources:
   pipelines:
-    rituals_radar:
+    rituals_radar_pipeline:
       name: rituals-radar-pipeline
       catalog: ${var.catalog}
-      schema: ${resources.schemas.rituals_radar.name}
+      schema: ${resources.schemas.rituals_radar_schema.name}
       serverless: true  # the only compute type in Free Edition
-      root_path: ../src/pipeline  # added to sys.path, so transformations can import utilities/
+      root_path: ../src/pipeline
       libraries:
         - glob:
             include: ../src/pipeline/transformations/**
       configuration:
         rituals_radar.landing_path: /Volumes/${var.catalog}/${var.schema}/${resources.volumes.landing.name}
         rituals_radar.include_sample_data: "${var.include_sample_data}"
-        rituals_radar.sentiment_engine: "${var.sentiment_engine}"

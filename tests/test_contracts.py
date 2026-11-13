@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from conftest import NOW, REPO_ROOT
-from radar.records import CATALOG_FIELDS, SOCIAL_FIELDS, STOCK_FIELDS, conform
+from radar.records import CATALOG_FIELDS, STOCK_FIELDS, conform
 from radar.sample_data import generate
 
 TRANSFORMATIONS = REPO_ROOT / "src" / "pipeline" / "transformations"
@@ -36,7 +36,6 @@ def ddl(const: str) -> dict[str, str]:
 CONTRACTS = [
     ("STOCK_COLUMNS", STOCK_FIELDS, "rituals_stock"),
     ("CATALOG_COLUMNS", CATALOG_FIELDS, "rituals_catalog"),
-    ("SOCIAL_COLUMNS", SOCIAL_FIELDS, "social"),
 ]
 
 
@@ -49,7 +48,7 @@ def test_bronze_schema_matches_collector_fields(const, fields, _):
 def test_generated_records_fit_the_declared_types(cfg, const, fields, dataset):
     types = ddl(const)
     data = generate(cfg, days=3, seed=7, now=NOW)
-    records = [r for key, rs in data.items() if key.partition(":")[0] == dataset for r in rs]
+    records = data[dataset]
     assert records, f"no sample records for {dataset}"
     checks = {
         "STRING": lambda v: isinstance(v, str),

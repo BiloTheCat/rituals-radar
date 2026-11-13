@@ -25,9 +25,6 @@ variables:
   include_sample_data:
     description: '"true" keeps the generated sample rows in silver/gold, "false" uses real data only (then do a full refresh).'
     default: "true"
-  sentiment_engine:
-    description: '"ai" = Databricks ai_analyze_sentiment(), "lexicon" = built-in word-list fallback.'
-    default: "ai"
 
 targets:
   free:
@@ -35,4 +32,4 @@ targets:
     # No "mode: development" on purpose: development mode pauses all schedules,
     # and this project is meant to keep running on its own.
     workspace:
-      host: https://REPLACE-WITH-YOUR-WORKSPACE.cloud.databricks.com
+      host: https://dbc-3725dd5d-75d0.cloud.databricks.com

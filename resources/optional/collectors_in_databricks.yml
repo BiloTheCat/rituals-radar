@@ -4,9 +4,8 @@
 # src/notebooks/00_check_connectivity first; Free Edition blocks most sites
 # unless outbound access is unlocked, e.g. via LinkedIn verification).
 #
-# To enable: move this file one folder up (to resources/), put your API keys in
-# the secret scope "rituals_radar" (see docs/HANDLEIDING.md), disable the
-# GitHub Actions schedule, and run `databricks bundle deploy`.
+# To enable: move this file one folder up (to resources/), disable the GitHub
+# Actions schedule, and run `databricks bundle deploy`.
 # Note: Free Edition allows max 5 concurrent job tasks; these jobs use 1 each.
 resources:
   jobs:
@@ -24,16 +23,16 @@ resources:
             base_parameters:
               command: stock
 
-    rituals_radar_collect_daily:
-      name: rituals-radar-collect-daily
+    rituals_radar_collect_catalog:
+      name: rituals-radar-collect-catalog
       max_concurrent_runs: 1
       schedule:
         quartz_cron_expression: "0 45 5 * * ?"  # daily 05:45 UTC
         timezone_id: UTC
         pause_status: UNPAUSED
       tasks:
-        - task_key: collect_catalog_and_social
+        - task_key: collect_catalog
           notebook_task:
             notebook_path: ../src/notebooks/03_run_collectors.py
             base_parameters:
-              command: daily
+              command: catalog

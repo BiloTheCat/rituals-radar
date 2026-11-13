@@ -67,7 +67,7 @@ def test_dashboard_and_job(bundle):
     assert (RESOURCES / dashboard["file_path"]).resolve().is_file()
     (job,) = resources["jobs"].values()
     assert job["schedule"]["pause_status"] == "UNPAUSED"
-    assert "${resources.pipelines.rituals_radar.id}" in str(job["tasks"])
+    assert "${resources.pipelines.rituals_radar_pipeline.id}" in str(job["tasks"])
 
 
 def test_optional_collector_job_paths_work_once_moved():

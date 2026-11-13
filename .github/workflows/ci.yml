@@ -1,4 +1,4 @@
-# Runs the unit tests (parsers, matching, data contracts, dashboard definition)
+# Runs the unit tests (parser, matching, data contracts, dashboard definition)
 # on every push and pull request. No network or Databricks access needed.
 name: ci
 

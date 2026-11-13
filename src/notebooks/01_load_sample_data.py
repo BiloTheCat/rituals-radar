@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 01 · Load sample data
 # MAGIC
-# MAGIC Writes ~30 days of **generated** stock checks, sitemap snapshots and social posts into the
+# MAGIC Writes ~30 days of **generated** stock checks and sitemap snapshots into the
 # MAGIC landing volume, so the pipeline and the dashboard work before any real data has been collected.
 # MAGIC Every generated row has `is_sample = true`; the pipeline drops them when the bundle variable
 # MAGIC `include_sample_data` is `"false"`.

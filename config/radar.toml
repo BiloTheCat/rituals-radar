@@ -15,7 +15,7 @@ locale = "nl-nl"
 # Seconds between two requests to rituals.com. Be gentle: it's someone else's shop.
 delay_seconds = 3.0
 timeout_seconds = 20
-# Identify yourself honestly. Replace YOUR_GITHUB_NAME with your GitHub user name.
+# Identify yourself honestly (your GitHub repo).
 user_agent = "RitualsRadar/1.0 (non-commercial portfolio project; +https://github.com/BiloTheCat/rituals-radar)"
 respect_robots_txt = true
 
@@ -63,16 +63,10 @@ collections = []
 # Hard limit on product pages per run (≈ max_products × delay_seconds seconds).
 max_products = 40
 
-[brand]
-# A social post only counts as a Rituals mention when it contains one of these
-# terms (whole words, case-insensitive). Comments on a relevant video inherit
-# the video's relevance.
-terms = ["rituals", "ritualscosmetics", "rituals cosmetics", "the ritual of", "@rituals", "#rituals"]
-
 # ---------------------------------------------------------------------------
-# Collections (product lines). Keywords are matched as whole words, so
-# "sakura" does not match "yozakura". For products, the FIRST matching
-# collection in this file wins; social posts can match several.
+# Collections (product lines). Keywords are matched as whole words in the
+# product name/URL, so "sakura" does not match "yozakura". The FIRST matching
+# collection in this file wins.
 # ---------------------------------------------------------------------------
 [collections.advent]
 display_name = "Advent calendars"
@@ -137,61 +131,3 @@ keywords = ["uukumwe"]
 [collections.sport]
 display_name = "Rituals Sport"
 keywords = ["rituals sport"]
-
-# ---------------------------------------------------------------------------
-# Social media
-# ---------------------------------------------------------------------------
-[social]
-# Only content published in this window is collected (keeps API usage low).
-lookback_days = 7
-
-[social.youtube]
-# Free official API. Needs the YOUTUBE_API_KEY environment variable.
-enabled = true
-search_terms = [
-  "rituals sakura",
-  "rituals karma",
-  "rituals jing",
-  "rituals ayurveda",
-  "rituals hammam",
-  "rituals mehr",
-  "rituals yozakura",
-  "rituals homme",
-  "rituals advent calendar 2026",
-  "rituals adventskalender",
-  "rituals review",
-]
-max_videos_per_term = 5
-max_comments_per_video = 30
-region_code = "NL"
-relevance_language = ""   # e.g. "nl" to prefer Dutch-language videos
-
-[social.bluesky]
-# Free, open API. Works without login; with BLUESKY_HANDLE + BLUESKY_APP_PASSWORD
-# it uses an authenticated (more reliable) endpoint.
-enabled = true
-search_terms = [
-  "rituals sakura",
-  "rituals karma",
-  "rituals jing",
-  "rituals advent",
-  "rituals cosmetics",
-  "rituals douchegel",
-  "ritualscosmetics",
-]
-max_posts_per_term = 50
-
-[social.x]
-# PAID official API (about $0.005 per post read, billed by X).
-# Only runs when X_BEARER_TOKEN is set. max_posts_per_run is your cost cap:
-# 50 posts a day ≈ $0.25 a day ≈ $7.50 a month.
-enabled = true
-query = '"rituals" (sakura OR karma OR jing OR ayurveda OR hammam OR mehr OR yozakura OR advent OR homme OR oudh) -is:retweet'
-lookback_hours = 24
-max_posts_per_run = 50
-
-[social.tiktok]
-# TikTok has no public search API for individuals. Paste TikTok video links into
-# this file and the official oEmbed endpoint fetches each video's caption.
-enabled = true
-links_file = "config/tiktok_links.txt"

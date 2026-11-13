@@ -1,6 +1,0 @@
-# TikTok video links, one per line. Lines starting with # are ignored.
-# Find videos by searching TikTok for e.g. "rituals sakura" and copy the share link.
-# Format: https://www.tiktok.com/@username/video/1234567890123456789
-#
-# The collector uses TikTok's official oEmbed endpoint (no API key needed) to get
-# the caption and author of each video. View/like counts are not available that way.

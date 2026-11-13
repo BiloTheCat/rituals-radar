@@ -4,26 +4,15 @@
 # MAGIC
 # MAGIC Only useful when `00_check_connectivity` shows that your workspace can reach the sites.
 # MAGIC By default the collectors run in GitHub Actions instead.
-# MAGIC
-# MAGIC API keys are read from a Databricks **secret scope** called `rituals_radar`
-# MAGIC (create it with the CLI, see docs/HANDLEIDING.md). Missing keys simply skip that source.
 
 # COMMAND ----------
 
-dbutils.widgets.dropdown("command", "stock", ["stock", "catalog", "social", "daily", "all"], "Command")  # noqa: F821
+dbutils.widgets.dropdown("command", "stock", ["stock", "catalog", "all"], "Command")  # noqa: F821
 
 # COMMAND ----------
 
 import os
 import sys
-
-SECRET_SCOPE = "rituals_radar"
-for key in ("YOUTUBE_API_KEY", "BLUESKY_HANDLE", "BLUESKY_APP_PASSWORD", "X_BEARER_TOKEN", "RADAR_HASH_SALT"):
-    try:
-        os.environ[key] = dbutils.secrets.get(SECRET_SCOPE, key)  # noqa: F821
-    except Exception:  # noqa: BLE001 - secret (or scope) not configured
-        os.environ.pop(key, None)
-
 
 def find_repo_root() -> str:
     candidates = [os.getcwd()]

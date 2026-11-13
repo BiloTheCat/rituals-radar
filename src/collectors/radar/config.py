@@ -40,58 +40,12 @@ class WatchlistConfig:
 
 
 @dataclass(frozen=True)
-class YouTubeConfig:
-    enabled: bool = True
-    search_terms: tuple[str, ...] = ()
-    max_videos_per_term: int = 5
-    max_comments_per_video: int = 30
-    region_code: str = "NL"
-    relevance_language: str = ""
-
-
-@dataclass(frozen=True)
-class BlueskyConfig:
-    enabled: bool = True
-    search_terms: tuple[str, ...] = ()
-    max_posts_per_term: int = 50
-
-
-@dataclass(frozen=True)
-class XConfig:
-    enabled: bool = True
-    query: str = ""
-    lookback_hours: int = 24
-    max_posts_per_run: int = 50
-
-
-@dataclass(frozen=True)
-class TikTokConfig:
-    enabled: bool = True
-    links_file: str = "config/tiktok_links.txt"
-
-
-@dataclass(frozen=True)
 class Config:
     path: Path
     volume_path: str
     site: SiteConfig
     watchlist: WatchlistConfig
-    brand_terms: tuple[str, ...]
     collections: dict[str, Collection]
-    lookback_days: int
-    youtube: YouTubeConfig
-    bluesky: BlueskyConfig
-    x: XConfig
-    tiktok: TikTokConfig
-
-    @property
-    def repo_root(self) -> Path:
-        """Folder that contains config/ (relative paths in the config resolve from here)."""
-        return self.path.parent.parent
-
-    def resolve(self, relative: str) -> Path:
-        candidate = Path(relative)
-        return candidate if candidate.is_absolute() else self.repo_root / candidate
 
 
 def _tuple(value: object, name: str) -> tuple[str, ...]:
@@ -142,42 +96,10 @@ def load_config(path: str | os.PathLike[str] = "config/radar.toml") -> Config:
     if unknown:
         raise ValueError(f"watchlist.collections refers to unknown collections: {unknown}")
 
-    social = raw.get("social", {})
-    yt = social.get("youtube", {})
-    bs = social.get("bluesky", {})
-    xx = social.get("x", {})
-    tt = social.get("tiktok", {})
-
     return Config(
         path=path,
         volume_path=str(raw.get("landing", {}).get("volume_path", "")).rstrip("/"),
         site=site,
         watchlist=watchlist,
-        brand_terms=tuple(t.lower() for t in _tuple(raw.get("brand", {}).get("terms"), "brand.terms"))
-        or ("rituals",),
         collections=collections,
-        lookback_days=int(social.get("lookback_days", 7)),
-        youtube=YouTubeConfig(
-            enabled=bool(yt.get("enabled", True)),
-            search_terms=_tuple(yt.get("search_terms"), "social.youtube.search_terms"),
-            max_videos_per_term=int(yt.get("max_videos_per_term", 5)),
-            max_comments_per_video=int(yt.get("max_comments_per_video", 30)),
-            region_code=str(yt.get("region_code", "NL")),
-            relevance_language=str(yt.get("relevance_language", "")),
-        ),
-        bluesky=BlueskyConfig(
-            enabled=bool(bs.get("enabled", True)),
-            search_terms=_tuple(bs.get("search_terms"), "social.bluesky.search_terms"),
-            max_posts_per_term=int(bs.get("max_posts_per_term", 50)),
-        ),
-        x=XConfig(
-            enabled=bool(xx.get("enabled", True)),
-            query=str(xx.get("query", "")),
-            lookback_hours=int(xx.get("lookback_hours", 24)),
-            max_posts_per_run=int(xx.get("max_posts_per_run", 50)),
-        ),
-        tiktok=TikTokConfig(
-            enabled=bool(tt.get("enabled", True)),
-            links_file=str(tt.get("links_file", "config/tiktok_links.txt")),
-        ),
     )

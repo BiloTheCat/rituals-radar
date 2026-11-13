@@ -26,21 +26,10 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- Do collections with more buzz sell out more often?
-# MAGIC SELECT collection, mentions_30d, share_of_voice, net_sentiment_30d,
-# MAGIC        availability_rate_30d, stockouts_30d, avg_stockout_hours_30d
+# MAGIC -- Which collections are hardest to get? (last 30 days)
+# MAGIC SELECT collection, products_tracked, availability_rate_30d, stockouts_30d, hours_sold_out_30d
 # MAGIC FROM workspace.rituals_radar.gold_collection_scorecard
-# MAGIC ORDER BY buzz_rank
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC -- What do people complain about? Latest negative posts per collection.
-# MAGIC SELECT post_date, source, matched_collections, sentiment, text, url
-# MAGIC FROM workspace.rituals_radar.gold_social_posts
-# MAGIC WHERE sentiment IN ('negative', 'mixed')
-# MAGIC ORDER BY created_at DESC
-# MAGIC LIMIT 25
+# MAGIC ORDER BY scarcity_rank
 
 # COMMAND ----------
 

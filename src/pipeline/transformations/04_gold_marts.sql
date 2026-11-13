@@ -132,69 +132,10 @@ CROSS JOIN crawls c;
 
 
 -- ---------------------------------------------------------------------------
--- Social
--- ---------------------------------------------------------------------------
-CREATE OR REFRESH MATERIALIZED VIEW gold_social_posts
-COMMENT "One row per post/video/comment with sentiment and the latest known engagement."
-AS WITH posts AS (
-  SELECT *
-  FROM silver_social_sentiment
-  QUALIFY ROW_NUMBER() OVER (PARTITION BY record_id ORDER BY collected_at) = 1
-)
-SELECT
-  p.record_id,
-  p.source,
-  p.content_type,
-  p.url,
-  p.text,
-  p.lang,
-  p.created_at,
-  p.post_date,
-  p.matched_collections,
-  p.sentiment,
-  p.sentiment_score,
-  p.sentiment_engine,
-  COALESCE(e.like_count, p.like_count, 0) AS like_count,
-  COALESCE(e.reply_count, p.reply_count, 0) AS reply_count,
-  COALESCE(e.share_count, p.share_count, 0) AS share_count,
-  COALESCE(e.view_count, p.view_count) AS view_count,
-  COALESCE(e.like_count, p.like_count, 0)
-    + COALESCE(e.reply_count, p.reply_count, 0)
-    + COALESCE(e.share_count, p.share_count, 0) AS engagement,
-  p.author_hash,
-  p.is_sample
-FROM posts p
-LEFT JOIN silver_social_engagement_latest e ON e.record_id = p.record_id;
-
-
-CREATE OR REFRESH MATERIALIZED VIEW gold_collection_buzz_daily
-COMMENT "Per collection, day and source: mentions, engagement and sentiment (a post can mention several collections)."
-AS WITH mentions AS (
-  SELECT post_date, source, sentiment, engagement, explode(matched_collections) AS collection
-  FROM gold_social_posts
-)
-SELECT
-  post_date,
-  collection,
-  source,
-  COUNT(*) AS mentions,
-  SUM(engagement) AS engagement,
-  SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) AS positive,
-  SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END) AS negative,
-  SUM(CASE WHEN sentiment = 'neutral' THEN 1 ELSE 0 END) AS neutral,
-  SUM(CASE WHEN sentiment = 'mixed' THEN 1 ELSE 0 END) AS mixed,
-  ROUND(
-    (SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) - SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END))
-    / NULLIF(SUM(CASE WHEN sentiment <> 'unknown' THEN 1 ELSE 0 END), 0), 3) AS net_sentiment
-FROM mentions
-GROUP BY post_date, collection, source;
-
-
--- ---------------------------------------------------------------------------
--- Scorecards: stock and buzz side by side (last 30 days)
+-- Scorecards (last 30 days)
 -- ---------------------------------------------------------------------------
 CREATE OR REFRESH MATERIALIZED VIEW gold_collection_scorecard
-COMMENT "Per collection, last 30 days: availability, stock-outs, mentions, net sentiment, share of voice."
+COMMENT "Per collection, last 30 days: products tracked, availability, stock-outs and hours sold out."
 AS WITH stock AS (
   SELECT
     collection,
@@ -205,50 +146,29 @@ AS WITH stock AS (
   GROUP BY collection
 ),
 stockouts AS (
-  SELECT collection, COUNT(*) AS stockouts_30d, ROUND(AVG(duration_hours), 1) AS avg_stockout_hours_30d
+  SELECT
+    collection,
+    COUNT(*) AS stockouts_30d,
+    ROUND(AVG(duration_hours), 1) AS avg_stockout_hours_30d,
+    ROUND(SUM(duration_hours), 1) AS hours_sold_out_30d
   FROM gold_stockout_events
   WHERE stockout_start >= date_sub(current_date(), 30)
   GROUP BY collection
-),
-buzz AS (
-  SELECT
-    collection,
-    SUM(mentions) AS mentions_30d,
-    SUM(engagement) AS engagement_30d,
-    ROUND((SUM(positive) - SUM(negative)) / NULLIF(SUM(positive + negative + neutral + mixed), 0), 3)
-      AS net_sentiment_30d
-  FROM gold_collection_buzz_daily
-  WHERE post_date >= date_sub(current_date(), 30)
-  GROUP BY collection
-),
-combined AS (
-  SELECT
-    COALESCE(s.collection, b.collection) AS collection,
-    s.products_tracked,
-    s.availability_rate_30d,
-    COALESCE(b.mentions_30d, 0) AS mentions_30d,
-    COALESCE(b.engagement_30d, 0) AS engagement_30d,
-    b.net_sentiment_30d
-  FROM stock s
-  FULL OUTER JOIN buzz b ON b.collection = s.collection
 )
 SELECT
-  c.collection,
-  c.products_tracked,
-  c.availability_rate_30d,
+  s.collection,
+  s.products_tracked,
+  s.availability_rate_30d,
   COALESCE(o.stockouts_30d, 0) AS stockouts_30d,
   o.avg_stockout_hours_30d,
-  c.mentions_30d,
-  c.engagement_30d,
-  c.net_sentiment_30d,
-  ROUND(c.mentions_30d / NULLIF(SUM(c.mentions_30d) OVER (), 0), 4) AS share_of_voice,
-  DENSE_RANK() OVER (ORDER BY c.mentions_30d DESC, c.engagement_30d DESC) AS buzz_rank
-FROM combined c
-LEFT JOIN stockouts o ON o.collection = c.collection;
+  COALESCE(o.hours_sold_out_30d, 0) AS hours_sold_out_30d,
+  DENSE_RANK() OVER (ORDER BY s.availability_rate_30d ASC) AS scarcity_rank
+FROM stock s
+LEFT JOIN stockouts o ON o.collection = s.collection;
 
 
 CREATE OR REFRESH MATERIALIZED VIEW gold_product_scorecard
-COMMENT "Per product: current status, availability 7/30 days, stock-outs, and the buzz around its collection."
+COMMENT "Per product: current status, price, availability 7/30 days and stock-outs."
 AS WITH daily AS (
   SELECT
     product_id,
@@ -280,10 +200,7 @@ SELECT
   d.availability_rate_30d,
   COALESCE(o.stockouts_30d, 0) AS stockouts_30d,
   COALESCE(o.hours_out_of_stock_30d, 0) AS hours_out_of_stock_30d,
-  b.mentions_30d AS collection_mentions_30d,
-  b.net_sentiment_30d AS collection_net_sentiment_30d,
   c.url
 FROM gold_stock_current c
 LEFT JOIN daily d ON d.product_id = c.product_id
-LEFT JOIN stockouts o ON o.product_id = c.product_id
-LEFT JOIN gold_collection_scorecard b ON b.collection = c.collection;
+LEFT JOIN stockouts o ON o.product_id = c.product_id;

@@ -1,9 +1,9 @@
 [project]
 name = "rituals-radar"
 version = "1.0.0"
-description = "Stock monitoring and social sentiment for Rituals products on Databricks Free Edition"
+description = "Stock monitoring for Rituals products on Databricks Free Edition"
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src/collectors", "src/pipeline"]
+pythonpath = ["src/collectors"]

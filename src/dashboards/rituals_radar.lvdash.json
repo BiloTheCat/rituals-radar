@@ -83,94 +83,54 @@
       ]
     },
     {
-      "name": "ds_social_kpis",
-      "displayName": "Social KPIs (30 days)",
-      "queryLines": [
-        "SELECT COUNT(*) AS posts_30d,\n",
-        "       ROUND(\n",
-        "         (SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) - SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END))\n",
-        "         / NULLIF(SUM(CASE WHEN sentiment <> 'unknown' THEN 1 ELSE 0 END), 0) * 100, 1) AS net_sentiment_pct,\n",
-        "       COUNT(DISTINCT source) AS sources\n",
-        "FROM workspace.rituals_radar.gold_social_posts\n",
-        "WHERE post_date >= date_sub(current_date(), 30)"
-      ]
-    },
-    {
-      "name": "ds_mentions_by_sentiment",
-      "displayName": "Mentions per collection by sentiment (30 days)",
-      "queryLines": [
-        "SELECT initcap(replace(collection, '_', ' ')) AS collection, sentiment, COUNT(*) AS mentions\n",
-        "FROM (\n",
-        "  SELECT explode(matched_collections) AS collection, sentiment\n",
-        "  FROM workspace.rituals_radar.gold_social_posts\n",
-        "  WHERE post_date >= date_sub(current_date(), 30)\n",
-        ")\n",
-        "GROUP BY 1, 2"
-      ]
-    },
-    {
-      "name": "ds_posts_per_day",
-      "displayName": "Posts per day per source",
-      "queryLines": [
-        "SELECT post_date, source, COUNT(*) AS posts\n",
-        "FROM workspace.rituals_radar.gold_social_posts\n",
-        "WHERE post_date >= date_sub(current_date(), 30)\n",
-        "GROUP BY post_date, source"
-      ]
-    },
-    {
-      "name": "ds_net_sentiment",
-      "displayName": "Net sentiment per collection (30 days)",
-      "queryLines": [
-        "SELECT initcap(replace(collection, '_', ' ')) AS collection,\n",
-        "       ROUND(net_sentiment_30d * 100, 1) AS net_sentiment_pct,\n",
-        "       mentions_30d\n",
-        "FROM workspace.rituals_radar.gold_collection_scorecard\n",
-        "WHERE mentions_30d >= 3"
-      ]
-    },
-    {
-      "name": "ds_negative_posts",
-      "displayName": "Latest negative and mixed posts",
-      "queryLines": [
-        "SELECT post_date,\n",
-        "       source,\n",
-        "       initcap(replace(array_join(matched_collections, ', '), '_', ' ')) AS collections,\n",
-        "       sentiment,\n",
-        "       substring(text, 1, 180) AS text,\n",
-        "       url\n",
-        "FROM workspace.rituals_radar.gold_social_posts\n",
-        "WHERE sentiment IN ('negative', 'mixed')\n",
-        "ORDER BY created_at DESC\n",
-        "LIMIT 50"
-      ]
-    },
-    {
       "name": "ds_scorecard",
       "displayName": "Collection scorecard (30 days)",
       "queryLines": [
-        "SELECT buzz_rank,\n",
-        "       initcap(replace(collection, '_', ' ')) AS collection,\n",
-        "       mentions_30d,\n",
-        "       ROUND(share_of_voice * 100, 1) AS share_of_voice_pct,\n",
-        "       ROUND(net_sentiment_30d * 100, 1) AS net_sentiment_pct,\n",
+        "SELECT initcap(replace(collection, '_', ' ')) AS collection,\n",
         "       products_tracked,\n",
         "       ROUND(availability_rate_30d * 100, 1) AS availability_pct_30d,\n",
         "       stockouts_30d,\n",
-        "       avg_stockout_hours_30d\n",
+        "       avg_stockout_hours_30d,\n",
+        "       hours_sold_out_30d\n",
         "FROM workspace.rituals_radar.gold_collection_scorecard\n",
-        "ORDER BY buzz_rank"
+        "ORDER BY availability_rate_30d ASC"
       ]
     },
     {
-      "name": "ds_buzz_vs_stock",
-      "displayName": "Buzz vs. availability",
+      "name": "ds_collection_availability",
+      "displayName": "Availability per collection (30 days)",
       "queryLines": [
         "SELECT initcap(replace(collection, '_', ' ')) AS collection,\n",
-        "       mentions_30d,\n",
         "       ROUND(availability_rate_30d * 100, 1) AS availability_pct_30d\n",
-        "FROM workspace.rituals_radar.gold_collection_scorecard\n",
-        "WHERE availability_rate_30d IS NOT NULL AND mentions_30d > 0"
+        "FROM workspace.rituals_radar.gold_collection_scorecard"
+      ]
+    },
+    {
+      "name": "ds_discounts",
+      "displayName": "Products on discount right now",
+      "queryLines": [
+        "SELECT product_name AS product,\n",
+        "       initcap(replace(collection, '_', ' ')) AS collection,\n",
+        "       price,\n",
+        "       list_price,\n",
+        "       ROUND(discount_pct * 100, 0) AS discount_pct\n",
+        "FROM workspace.rituals_radar.gold_product_scorecard\n",
+        "WHERE discount_pct > 0\n",
+        "ORDER BY discount_pct DESC"
+      ]
+    },
+    {
+      "name": "ds_new_products",
+      "displayName": "New in the catalogue",
+      "queryLines": [
+        "SELECT slug AS product,\n",
+        "       initcap(replace(collection, '_', ' ')) AS collection,\n",
+        "       first_seen_at,\n",
+        "       is_listed,\n",
+        "       url\n",
+        "FROM workspace.rituals_radar.gold_catalog_products\n",
+        "WHERE is_new_launch\n",
+        "ORDER BY first_seen_at DESC"
       ]
     }
   ],
@@ -603,427 +563,17 @@
       ]
     },
     {
-      "name": "social",
-      "displayName": "Social buzz & sentiment",
+      "name": "collections",
+      "displayName": "Collections & catalogue",
       "pageType": "PAGE_TYPE_CANVAS",
       "layoutVersion": "GRID_V1",
       "layout": [
         {
           "widget": {
-            "name": "social_header",
+            "name": "collections_header",
             "multilineTextboxSpec": {
               "lines": [
-                "# Social buzz & sentiment\n\nMentions of Rituals collections on YouTube (incl. Shorts), Bluesky, X and TikTok. Sentiment per post: Databricks `ai_analyze_sentiment()` (or the lexicon fallback). Net sentiment = (% positive) − (% negative)."
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 0,
-            "width": 12,
-            "height": 2
-          }
-        },
-        {
-          "widget": {
-            "name": "kpi_posts",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "ds_social_kpis",
-                  "fields": [
-                    {
-                      "name": "posts_30d",
-                      "expression": "`posts_30d`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "posts_30d",
-                  "displayName": "Posts (30 days)"
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Posts (30 days)"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 2,
-            "width": 4,
-            "height": 3
-          }
-        },
-        {
-          "widget": {
-            "name": "kpi_net_sentiment",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "ds_social_kpis",
-                  "fields": [
-                    {
-                      "name": "net_sentiment_pct",
-                      "expression": "`net_sentiment_pct`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "net_sentiment_pct",
-                  "displayName": "Net sentiment (30 days, %)"
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Net sentiment (30 days, %)"
-              }
-            }
-          },
-          "position": {
-            "x": 4,
-            "y": 2,
-            "width": 4,
-            "height": 3
-          }
-        },
-        {
-          "widget": {
-            "name": "kpi_sources",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "ds_social_kpis",
-                  "fields": [
-                    {
-                      "name": "sources",
-                      "expression": "`sources`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "sources",
-                  "displayName": "Active sources"
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Active sources"
-              }
-            }
-          },
-          "position": {
-            "x": 8,
-            "y": 2,
-            "width": 4,
-            "height": 3
-          }
-        },
-        {
-          "widget": {
-            "name": "bar_mentions_sentiment",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "ds_mentions_by_sentiment",
-                  "fields": [
-                    {
-                      "name": "collection",
-                      "expression": "`collection`"
-                    },
-                    {
-                      "name": "sum(mentions)",
-                      "expression": "SUM(`mentions`)"
-                    },
-                    {
-                      "name": "sentiment",
-                      "expression": "`sentiment`"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "widgetType": "bar",
-              "encodings": {
-                "x": {
-                  "fieldName": "collection",
-                  "scale": {
-                    "type": "categorical"
-                  },
-                  "displayName": "Collection"
-                },
-                "y": {
-                  "fieldName": "sum(mentions)",
-                  "scale": {
-                    "type": "quantitative"
-                  },
-                  "displayName": "Mentions"
-                },
-                "color": {
-                  "fieldName": "sentiment",
-                  "scale": {
-                    "type": "categorical"
-                  },
-                  "displayName": "Sentiment"
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Mentions per collection by sentiment (30 days)"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 5,
-            "width": 12,
-            "height": 6
-          }
-        },
-        {
-          "widget": {
-            "name": "line_posts_per_day",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "ds_posts_per_day",
-                  "fields": [
-                    {
-                      "name": "post_date",
-                      "expression": "`post_date`"
-                    },
-                    {
-                      "name": "sum(posts)",
-                      "expression": "SUM(`posts`)"
-                    },
-                    {
-                      "name": "source",
-                      "expression": "`source`"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "widgetType": "line",
-              "encodings": {
-                "x": {
-                  "fieldName": "post_date",
-                  "scale": {
-                    "type": "temporal"
-                  },
-                  "displayName": "Date"
-                },
-                "y": {
-                  "fieldName": "sum(posts)",
-                  "scale": {
-                    "type": "quantitative"
-                  },
-                  "displayName": "Posts"
-                },
-                "color": {
-                  "fieldName": "source",
-                  "scale": {
-                    "type": "categorical"
-                  },
-                  "displayName": "Source"
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Posts per day per source"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 11,
-            "width": 6,
-            "height": 6
-          }
-        },
-        {
-          "widget": {
-            "name": "bar_net_sentiment",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "ds_net_sentiment",
-                  "fields": [
-                    {
-                      "name": "collection",
-                      "expression": "`collection`"
-                    },
-                    {
-                      "name": "avg(net_sentiment_pct)",
-                      "expression": "AVG(`net_sentiment_pct`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "widgetType": "bar",
-              "encodings": {
-                "x": {
-                  "fieldName": "collection",
-                  "scale": {
-                    "type": "categorical"
-                  },
-                  "displayName": "Collection"
-                },
-                "y": {
-                  "fieldName": "avg(net_sentiment_pct)",
-                  "scale": {
-                    "type": "quantitative"
-                  },
-                  "displayName": "Net sentiment (%)"
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Net sentiment per collection (30 days, min. 3 mentions)"
-              }
-            }
-          },
-          "position": {
-            "x": 6,
-            "y": 11,
-            "width": 6,
-            "height": 6
-          }
-        },
-        {
-          "widget": {
-            "name": "tbl_negative_posts",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "ds_negative_posts",
-                  "fields": [
-                    {
-                      "name": "post_date",
-                      "expression": "`post_date`"
-                    },
-                    {
-                      "name": "source",
-                      "expression": "`source`"
-                    },
-                    {
-                      "name": "collections",
-                      "expression": "`collections`"
-                    },
-                    {
-                      "name": "sentiment",
-                      "expression": "`sentiment`"
-                    },
-                    {
-                      "name": "text",
-                      "expression": "`text`"
-                    },
-                    {
-                      "name": "url",
-                      "expression": "`url`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "table",
-              "encodings": {
-                "columns": [
-                  {
-                    "fieldName": "post_date",
-                    "displayName": "Date"
-                  },
-                  {
-                    "fieldName": "source",
-                    "displayName": "Source"
-                  },
-                  {
-                    "fieldName": "collections",
-                    "displayName": "Collections"
-                  },
-                  {
-                    "fieldName": "sentiment",
-                    "displayName": "Sentiment"
-                  },
-                  {
-                    "fieldName": "text",
-                    "displayName": "Text"
-                  },
-                  {
-                    "fieldName": "url",
-                    "displayName": "Link"
-                  }
-                ]
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Latest negative and mixed posts"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 17,
-            "width": 12,
-            "height": 8
-          }
-        }
-      ]
-    },
-    {
-      "name": "insights",
-      "displayName": "Buzz vs. availability",
-      "pageType": "PAGE_TYPE_CANVAS",
-      "layoutVersion": "GRID_V1",
-      "layout": [
-        {
-          "widget": {
-            "name": "insight_header",
-            "multilineTextboxSpec": {
-              "lines": [
-                "# Buzz vs. availability\n\nDo the collections people talk about most also sell out most? Stock data and social data joined per collection (last 30 days)."
+                "# Collections & catalogue\n\nWhich product lines are hardest to get (last 30 days), which products are discounted, and what is new in the sitemap."
               ]
             }
           },
@@ -1044,24 +594,8 @@
                   "datasetName": "ds_scorecard",
                   "fields": [
                     {
-                      "name": "buzz_rank",
-                      "expression": "`buzz_rank`"
-                    },
-                    {
                       "name": "collection",
                       "expression": "`collection`"
-                    },
-                    {
-                      "name": "mentions_30d",
-                      "expression": "`mentions_30d`"
-                    },
-                    {
-                      "name": "share_of_voice_pct",
-                      "expression": "`share_of_voice_pct`"
-                    },
-                    {
-                      "name": "net_sentiment_pct",
-                      "expression": "`net_sentiment_pct`"
                     },
                     {
                       "name": "products_tracked",
@@ -1078,6 +612,10 @@
                     {
                       "name": "avg_stockout_hours_30d",
                       "expression": "`avg_stockout_hours_30d`"
+                    },
+                    {
+                      "name": "hours_sold_out_30d",
+                      "expression": "`hours_sold_out_30d`"
                     }
                   ],
                   "disaggregated": true
@@ -1090,24 +628,8 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "buzz_rank",
-                    "displayName": "Buzz rank"
-                  },
-                  {
                     "fieldName": "collection",
                     "displayName": "Collection"
-                  },
-                  {
-                    "fieldName": "mentions_30d",
-                    "displayName": "Mentions"
-                  },
-                  {
-                    "fieldName": "share_of_voice_pct",
-                    "displayName": "Share of voice (%)"
-                  },
-                  {
-                    "fieldName": "net_sentiment_pct",
-                    "displayName": "Net sentiment (%)"
                   },
                   {
                     "fieldName": "products_tracked",
@@ -1124,6 +646,10 @@
                   {
                     "fieldName": "avg_stockout_hours_30d",
                     "displayName": "Avg. hours per stock-out"
+                  },
+                  {
+                    "fieldName": "hours_sold_out_30d",
+                    "displayName": "Hours sold out"
                   }
                 ]
               },
@@ -1137,29 +663,91 @@
             "x": 0,
             "y": 2,
             "width": 12,
-            "height": 8
+            "height": 7
           }
         },
         {
           "widget": {
-            "name": "scatter_buzz_stock",
+            "name": "bar_collection_availability",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_buzz_vs_stock",
+                  "datasetName": "ds_collection_availability",
                   "fields": [
                     {
-                      "name": "mentions_30d",
-                      "expression": "`mentions_30d`"
+                      "name": "collection",
+                      "expression": "`collection`"
                     },
                     {
-                      "name": "availability_pct_30d",
-                      "expression": "`availability_pct_30d`"
+                      "name": "avg(availability_pct_30d)",
+                      "expression": "AVG(`availability_pct_30d`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "collection",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Collection"
+                },
+                "y": {
+                  "fieldName": "avg(availability_pct_30d)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Availability (%)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Availability per collection (30 days)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "tbl_discounts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_discounts",
+                  "fields": [
+                    {
+                      "name": "product",
+                      "expression": "`product`"
                     },
                     {
                       "name": "collection",
                       "expression": "`collection`"
+                    },
+                    {
+                      "name": "price",
+                      "expression": "`price`"
+                    },
+                    {
+                      "name": "list_price",
+                      "expression": "`list_price`"
+                    },
+                    {
+                      "name": "discount_pct",
+                      "expression": "`discount_pct`"
                     }
                   ],
                   "disaggregated": true
@@ -1167,41 +755,116 @@
               }
             ],
             "spec": {
-              "version": 3,
-              "widgetType": "scatter",
+              "version": 2,
+              "widgetType": "table",
               "encodings": {
-                "x": {
-                  "fieldName": "mentions_30d",
-                  "scale": {
-                    "type": "quantitative"
+                "columns": [
+                  {
+                    "fieldName": "product",
+                    "displayName": "Product"
                   },
-                  "displayName": "Mentions (30 days)"
-                },
-                "y": {
-                  "fieldName": "availability_pct_30d",
-                  "scale": {
-                    "type": "quantitative"
+                  {
+                    "fieldName": "collection",
+                    "displayName": "Collection"
                   },
-                  "displayName": "Availability (%)"
-                },
-                "color": {
-                  "fieldName": "collection",
-                  "scale": {
-                    "type": "categorical"
+                  {
+                    "fieldName": "price",
+                    "displayName": "Price (€)"
                   },
-                  "displayName": "Collection"
-                }
+                  {
+                    "fieldName": "list_price",
+                    "displayName": "List price (€)"
+                  },
+                  {
+                    "fieldName": "discount_pct",
+                    "displayName": "Discount (%)"
+                  }
+                ]
               },
               "frame": {
                 "showTitle": true,
-                "title": "Buzz vs. availability per collection"
+                "title": "On discount right now"
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 10,
-            "width": 12,
+            "y": 15,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "tbl_new_products",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_new_products",
+                  "fields": [
+                    {
+                      "name": "product",
+                      "expression": "`product`"
+                    },
+                    {
+                      "name": "collection",
+                      "expression": "`collection`"
+                    },
+                    {
+                      "name": "first_seen_at",
+                      "expression": "`first_seen_at`"
+                    },
+                    {
+                      "name": "is_listed",
+                      "expression": "`is_listed`"
+                    },
+                    {
+                      "name": "url",
+                      "expression": "`url`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "product",
+                    "displayName": "Product"
+                  },
+                  {
+                    "fieldName": "collection",
+                    "displayName": "Collection"
+                  },
+                  {
+                    "fieldName": "first_seen_at",
+                    "displayName": "First seen"
+                  },
+                  {
+                    "fieldName": "is_listed",
+                    "displayName": "Still listed"
+                  },
+                  {
+                    "fieldName": "url",
+                    "displayName": "Link"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "New in the catalogue"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 15,
+            "width": 6,
             "height": 7
           }
         }

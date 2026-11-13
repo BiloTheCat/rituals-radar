@@ -11,17 +11,13 @@ def test_sample_command(tmp_path):
 
 def test_options_before_the_command(tmp_path):
     assert cli.main(["--out", str(tmp_path), "sample", "--days", "1"]) == 0
-    assert list(tmp_path.glob("social/*/*/*.jsonl"))
+    assert list(tmp_path.glob("rituals_catalog/*/*.jsonl"))
 
 
 def test_check_command(capsys):
     assert cli.main(["check"]) == 0
     out = capsys.readouterr().out
-    assert "YOUTUBE_API_KEY" in out and "Watchlist" in out
-
-
-def test_unknown_social_source():
-    assert cli.main(["social", "--sources", "myspace", "--dry-run"]) == 2
+    assert "Watchlist" in out and "DATABRICKS_HOST" in out
 
 
 def test_stock_dry_run(monkeypatch, capsys):

@@ -15,5 +15,5 @@ resources:
       tasks:
         - task_key: refresh_pipeline
           pipeline_task:
-            pipeline_id: ${resources.pipelines.rituals_radar.id}
+            pipeline_id: ${resources.pipelines.rituals_radar_pipeline.id}
             full_refresh: false

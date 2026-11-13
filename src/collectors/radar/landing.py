@@ -10,7 +10,7 @@ Three targets are supported, chosen automatically:
 * ``local``     – any other path: a local folder, handy for tests and dry runs.
 
 File layout (one file per dataset per run, never overwritten):
-    <root>/<dataset>[/<subfolder>]/<YYYY-MM-DD>/<name>_<YYYYMMDDTHHMMSSZ>_<run_id>.jsonl
+    <root>/<dataset>/<YYYY-MM-DD>/<dataset>_<YYYYMMDDTHHMMSSZ>_<run_id>.jsonl
 """
 
 from __future__ import annotations

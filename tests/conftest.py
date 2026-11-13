@@ -11,7 +11,6 @@ import requests
 
 from radar.config import load_config
 from radar.matching import matcher_from_config
-from radar.social import SocialContext
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -74,10 +73,3 @@ def cfg():
 @pytest.fixture(scope="session")
 def matcher(cfg):
     return matcher_from_config(cfg)
-
-
-@pytest.fixture
-def social_ctx(cfg, matcher):
-    def make(routes: dict) -> SocialContext:
-        return SocialContext(cfg=cfg, matcher=matcher, now=NOW, run_id="test-run", session=FakeSession(routes))
-    return make

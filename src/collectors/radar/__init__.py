@@ -1,7 +1,7 @@
 """Rituals Radar collectors.
 
-Small, dependency-light Python package that fetches public data (Rituals product
-pages, social media APIs) and lands it as JSON Lines in a Databricks Unity
+Small, dependency-light Python package that fetches public Rituals product pages
+and the sitemap, and lands the results as JSON Lines in a Databricks Unity
 Catalog volume (or a local folder). Everything downstream happens in Databricks.
 """
 

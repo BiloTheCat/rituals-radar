@@ -45,30 +45,6 @@ CATALOG_COLUMNS = (
     "is_sample BOOLEAN",
 )
 
-SOCIAL_COLUMNS = (
-    "record_id STRING",
-    "run_id STRING",
-    "collected_at TIMESTAMP",
-    "source STRING",
-    "content_type STRING",
-    "native_id STRING",
-    "parent_id STRING",
-    "url STRING",
-    "author_hash STRING",
-    "text STRING",
-    "lang STRING",
-    "created_at TIMESTAMP",
-    "like_count BIGINT",
-    "reply_count BIGINT",
-    "share_count BIGINT",
-    "view_count BIGINT",
-    "search_query STRING",
-    "matched_collections ARRAY<STRING>",
-    "is_relevant BOOLEAN",
-    "is_sample BOOLEAN",
-)
-
-
 def read_landing(pattern: str, columns: tuple):
     return (
         spark.readStream.format("cloudFiles")  # noqa: F821
@@ -97,12 +73,3 @@ def bronze_rituals_stock():
 @dp.expect("matches_contract", "_rescued_data IS NULL")
 def bronze_rituals_catalog():
     return read_landing("rituals_catalog/*/*.jsonl", CATALOG_COLUMNS)
-
-
-@dp.table(
-    name="bronze_social_posts",
-    comment="Raw social media records (YouTube, Bluesky, X, TikTok) in one shared contract.",
-)
-@dp.expect("matches_contract", "_rescued_data IS NULL")
-def bronze_social_posts():
-    return read_landing("social/*/*/*.jsonl", SOCIAL_COLUMNS)

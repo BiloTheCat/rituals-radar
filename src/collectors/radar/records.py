@@ -44,34 +44,9 @@ CATALOG_FIELDS: tuple[str, ...] = (
     "is_sample",
 )
 
-# One row per social post / video / comment, identical for every source.
-SOCIAL_FIELDS: tuple[str, ...] = (
-    "record_id",            # "<source>:<type>:<native id>", unique across sources
-    "run_id",
-    "collected_at",
-    "source",               # youtube | bluesky | x | tiktok
-    "content_type",         # video | short | comment | post
-    "native_id",
-    "parent_id",            # e.g. the video a comment belongs to
-    "url",
-    "author_hash",          # pseudonymised author, never the raw handle
-    "text",
-    "lang",
-    "created_at",
-    "like_count",
-    "reply_count",
-    "share_count",
-    "view_count",
-    "search_query",
-    "matched_collections",  # list of collection keys mentioned in the text
-    "is_relevant",          # mentions the Rituals brand (or inherits it from its video)
-    "is_sample",
-)
-
 DATASET_FIELDS: Mapping[str, tuple[str, ...]] = {
     "rituals_stock": STOCK_FIELDS,
     "rituals_catalog": CATALOG_FIELDS,
-    "social": SOCIAL_FIELDS,
 }
 
 
