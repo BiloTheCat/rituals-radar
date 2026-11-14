@@ -2,7 +2,7 @@
 
 **Stock monitoring for Rituals products, built end-to-end on Databricks Free Edition.**
 
-Every 3 hours the radar checks whether every product of the current **Limited Edition** (the Uukumwe Collection) is in stock on rituals.com/nl-nl and records price changes. The product list comes from the sitemap on each run, so new items in the collection are picked up automatically. Once a day it snapshots the sitemap to spot new and delisted products. A Lakeflow pipeline turns the raw checks into a compact stock history, stock-out periods with their duration, and scorecards per product and collection. An AI/BI dashboard sits on top.
+Every 3 hours the radar checks whether every product of the current **Limited Edition** (the Uukumwe Collection) is in stock on rituals.com/nl-nl and records price changes. The product list comes from the sitemap on each run, so new items in the collection are picked up automatically. Once a day it snapshots the sitemap to spot new and delisted products, and once a week it collects every Rituals store (address, coordinates, opening hours) and the centre of every Dutch 4-digit postcode area, so the dashboard can show the nearest stores for any postcode. A Lakeflow pipeline turns the raw checks into a compact stock history, stock-out periods with their duration, and scorecards per product and collection. An AI/BI dashboard sits on top.
 
 > Non-commercial portfolio project. It is not affiliated with Rituals Cosmetics.
 
@@ -12,6 +12,7 @@ Every 3 hours the radar checks whether every product of the current **Limited Ed
 - Which collections are hardest to get?
 - How do prices and discounts change over time?
 - Which new products appeared in the catalogue?
+- Which Rituals stores are closest to a given postcode?
 
 ## Architecture
 
@@ -20,6 +21,7 @@ flowchart LR
   subgraph GH["GitHub Actions"]
     C1["Stock collector (every 3 h)<br/>schema.org JSON-LD"]
     C2["Catalogue collector (daily)<br/>sitemap"]
+    C3["Reference collector (weekly)<br/>store pages · CBS postcode areas"]
   end
   subgraph DBX["Databricks Free Edition"]
     V[("Unity Catalog volume<br/>landing/*.jsonl")]
@@ -30,7 +32,7 @@ flowchart LR
     J["Job (4× per day)"] -.-> P
     G --> D["AI/BI dashboard"]
   end
-  C1 & C2 -->|"Files API"| V --> B
+  C1 & C2 & C3 -->|"Files API"| V --> B
 ```
 
 **Why the collectors run outside Databricks:** Free Edition only allows outbound traffic to a small allowlist of domains, so notebooks can't reach rituals.com. GitHub Actions fetches the pages and uploads raw JSON Lines to a Unity Catalog volume, and everything after that happens in Databricks. If your workspace does get internet access, for example after the optional LinkedIn verification, the same code can run as a Databricks job instead (`resources/optional/`).
@@ -44,6 +46,7 @@ flowchart LR
 | Data contracts | `radar/records.py` ↔ `01_bronze.py`, enforced by `tests/test_contracts.py` | A renamed field fails CI instead of silently becoming `NULL`; unexpected values land in `_rescued_data` |
 | Declarative data quality + quarantine | `02_silver.py` | Expectations drop or flag bad rows, with counts in the event log; failed checks go to `silver_stock_quarantine` |
 | SCD Type 2 with `AUTO CDC` | `03_gold_history.py` | ~6,500 checks a month collapse into a few hundred history rows; out-of-order data is handled |
+| Geo: nearest stores per postcode | `postcodes.py`, `gold_store_distance` | Postcode-area centres from open government data, haversine distance precomputed for ~4,000 postcodes |
 | Gaps-and-islands SQL | `04_gold_marts.sql` (`gold_stockout_events`) | Turns history versions into stock-out periods with durations |
 | Infrastructure as code | `databricks.yml`, `resources/` | Schema, volume, pipeline, job and dashboard are all deployed with one command |
 | CI/CD | `.github/workflows/` | Tests run on every push, and ingestion runs on a schedule |
@@ -57,22 +60,25 @@ The text *"Dit product is online tijdelijk uitverkocht"* ("this product is tempo
 
 | Layer | Table | Contents |
 |---|---|---|
-| Bronze | `bronze_rituals_stock`, `bronze_rituals_catalog` | Raw records plus lineage (`source_file`, `ingested_at`, `_rescued_data`) |
+| Bronze | `bronze_rituals_stock`, `bronze_rituals_catalog`, `bronze_rituals_stores`, `bronze_reference_pc4` | Raw records plus lineage (`source_file`, `ingested_at`, `_rescued_data`) |
 | Silver | `silver_stock_snapshots` | Successful stock checks, deduplicated, with discount and local date |
 | | `silver_stock_quarantine` | Failed checks (blocked, HTTP errors, layout changes) |
 | | `silver_catalog_snapshots` | Products listed in the sitemap per crawl |
+| | `silver_store_snapshots`, `silver_pc4_snapshots` | Store pages and postcode-area centres, validated (coordinates inside the Netherlands) |
 | Gold | `gold_stock_history` | Availability and price history (AUTO CDC, SCD2) |
 | | `gold_stock_current`, `gold_stock_daily`, `gold_collection_availability_daily` | Current status and daily availability |
 | | `gold_stockout_events` | Stock-out periods with start, end and duration |
 | | `gold_catalog_products` | First and last seen, still listed, new launches |
 | | `gold_collection_scorecard`, `gold_product_scorecard` | Availability, stock-outs and hours sold out (last 30 days) |
+| | `gold_stores`, `gold_postcode4`, `gold_store_distance` | Current stores, postcode centres, and the 10 nearest stores per postcode |
 
 ## Dashboard
 
-Two pages, defined as code in `src/dashboards/rituals_radar.lvdash.json`:
+Three pages, defined as code in `src/dashboards/rituals_radar.lvdash.json`:
 
 1. **Stock monitor:** KPIs, current status per product, availability trend for the six weakest collections, the products sold out longest, and what is sold out right now.
 2. **Collections & catalogue:** a scorecard per collection, availability per collection, products on discount, and new products in the sitemap.
+3. **Stores:** pick a postcode (4 digits) and a Uukumwe product. You see the 10 nearest stores with address, distance and opening hours, plus a link to the product page where rituals.com shows stock per store. Rituals keeps store-level stock behind a private, authenticated service, so this project links to it instead of collecting it.
 
 Until real data arrives, the dashboard runs on generated sample data (`is_sample = true`), in which limited and seasonal products sell out more often as the season approaches.
 
@@ -99,6 +105,13 @@ PYTHONPATH=src/collectors python -m radar stock --dry-run
 PYTHONPATH=src/collectors python -m radar sample --out landing_local
 ```
 
+## Data sources and licences
+
+| Source | Used for | Licence / terms |
+|---|---|---|
+| rituals.com product pages, sitemap and store pages | Online stock, prices, catalogue, store addresses | Public pages, allowed by robots.txt; read politely |
+| CBS postcode4 via PDOK (`api.pdok.nl`) | Centre of each 4-digit postcode area | Open data, CC BY 4.0 (attribution: CBS / PDOK) |
+
 ## Project structure
 
 ```
@@ -117,6 +130,8 @@ PYTHONPATH=src/collectors python -m radar sample --out landing_local
 ## Limitations
 
 - "In stock" means *orderable online on the Dutch webshop*. It says nothing about store stock or quantities. Timestamps are only as precise as the check interval (3 hours).
+- Distances are straight-line from the centre of the 4-digit postcode area, not travel distance.
+- Stock per store is not collected (see the Stores page above).
 - The JSON-LD offer price can differ from the price shown on the page (for example outlet or member prices); both are stored.
 
 ## Ideas for next steps

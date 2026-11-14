@@ -3,6 +3,9 @@
 Commands
   stock    check stock of the watchlist products (every few hours)
   catalog  snapshot of all product URLs in the sitemap (daily)
+  stores   addresses, coordinates and opening hours of all stores (weekly)
+  postcodes centre point of every 4-digit postcode area, CBS/PDOK (weekly)
+  reference stores + postcodes
   all      catalog + stock
   sample   write sample data (no network needed)
   check    show the configuration
@@ -21,8 +24,9 @@ import logging
 import os
 import sys
 
-from radar import rituals
+from radar import postcodes, rituals
 from radar.config import Config, load_config
+from radar.http_client import PoliteSession
 from radar.landing import LandingWriter
 from radar.matching import matcher_from_config
 from radar.sample_data import write_sample_data
@@ -56,6 +60,9 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("stock", parents=[common], help="check stock of the watchlist products")
     sub.add_parser("catalog", parents=[common], help="snapshot of all product URLs in the sitemap")
+    sub.add_parser("stores", parents=[common], help="addresses and coordinates of all stores")
+    sub.add_parser("postcodes", parents=[common], help="centre of every 4-digit postcode area (CBS/PDOK)")
+    sub.add_parser("reference", parents=[common], help="stores + postcodes")
     sub.add_parser("all", parents=[common], help="catalog + stock")
     sample = sub.add_parser("sample", parents=[common], help="write sample data (no network)")
     sample.add_argument("--days", type=int, default=30)
@@ -103,6 +110,23 @@ class Runner:
             self.failures.append("stock")
 
 
+    def stores(self) -> None:
+        try:
+            session = rituals.make_session(self.cfg)
+            self._emit("rituals_stores", rituals.collect_stores(self.cfg, session, now=self.now, run_id=self.run_id))
+        except Exception:
+            log.exception("Store collection failed")
+            self.failures.append("stores")
+
+    def postcodes(self) -> None:
+        try:
+            session = PoliteSession(self.cfg.site.user_agent, delay_seconds=1.0, respect_robots_txt=False)
+            self._emit("reference_pc4", postcodes.collect_postcodes(session, now=self.now, run_id=self.run_id))
+        except Exception:
+            log.exception("Postcode collection failed")
+            self.failures.append("postcodes")
+
+
 def _check(cfg: Config, out: str | None) -> None:
     present = lambda name: "set" if os.environ.get(name) else "missing"  # noqa: E731
     target = out or cfg.volume_path
@@ -143,6 +167,10 @@ def main(argv: list[str] | None = None) -> int:
         runner.catalog()
     if args.command in ("stock", "all"):
         runner.stock()
+    if args.command in ("stores", "reference"):
+        runner.stores()
+    if args.command in ("postcodes", "reference"):
+        runner.postcodes()
 
     if runner.failures:
         log.error("Run %s finished with failures: %s", runner.run_id, ", ".join(runner.failures))

@@ -7,7 +7,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.dropdown("command", "stock", ["stock", "catalog", "all"], "Command")  # noqa: F821
+dbutils.widgets.dropdown("command", "stock", ["stock", "catalog", "stores", "postcodes", "reference", "all"], "Command")  # noqa: F821
 
 # COMMAND ----------
 

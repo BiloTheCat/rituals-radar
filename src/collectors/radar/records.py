@@ -44,9 +44,40 @@ CATALOG_FIELDS: tuple[str, ...] = (
     "is_sample",
 )
 
+# One row per Rituals store page (weekly).
+STORE_FIELDS: tuple[str, ...] = (
+    "run_id",
+    "crawled_at",
+    "store_id",         # number at the end of the store URL, e.g. 2506
+    "store_name",
+    "street_address",
+    "postal_code",
+    "city",
+    "country",
+    "latitude",
+    "longitude",
+    "phone",
+    "opening_hours",    # e.g. "ma 11:00-18:00 · di 10:00-18:00 · ..."
+    "url",
+    "is_sample",
+)
+
+# One row per 4-digit postcode area with its centre point (CBS/PDOK, monthly).
+PC4_FIELDS: tuple[str, ...] = (
+    "run_id",
+    "fetched_at",
+    "pc4",              # "1012"
+    "latitude",
+    "longitude",
+    "source_year",      # CBS year of the postcode boundaries
+    "is_sample",
+)
+
 DATASET_FIELDS: Mapping[str, tuple[str, ...]] = {
     "rituals_stock": STOCK_FIELDS,
     "rituals_catalog": CATALOG_FIELDS,
+    "rituals_stores": STORE_FIELDS,
+    "reference_pc4": PC4_FIELDS,
 }
 
 

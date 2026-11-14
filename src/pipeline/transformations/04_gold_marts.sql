@@ -204,3 +204,79 @@ SELECT
 FROM gold_stock_current c
 LEFT JOIN daily d ON d.product_id = c.product_id
 LEFT JOIN stockouts o ON o.product_id = c.product_id;
+
+
+-- ---------------------------------------------------------------------------
+-- Stores near a postcode
+-- ---------------------------------------------------------------------------
+CREATE OR REFRESH MATERIALIZED VIEW gold_stores
+COMMENT "Every Rituals store with its latest address, coordinates and opening hours."
+AS WITH latest_crawl AS (
+  SELECT MAX(crawled_at) AS last_crawl FROM silver_store_snapshots
+)
+SELECT
+  s.store_id,
+  max_by(s.store_name, s.crawled_at) AS store_name,
+  max_by(s.street_address, s.crawled_at) AS street_address,
+  max_by(s.postal_code, s.crawled_at) AS postal_code,
+  max_by(s.city, s.crawled_at) AS city,
+  max_by(s.latitude, s.crawled_at) AS latitude,
+  max_by(s.longitude, s.crawled_at) AS longitude,
+  max_by(s.phone, s.crawled_at) AS phone,
+  max_by(s.opening_hours, s.crawled_at) AS opening_hours,
+  max_by(s.url, s.crawled_at) AS url,
+  MAX(s.crawled_at) AS last_seen_at,
+  MAX(s.crawled_at) = MAX(l.last_crawl) AS is_listed,
+  max_by(s.is_sample, s.crawled_at) AS is_sample
+FROM silver_store_snapshots s
+CROSS JOIN latest_crawl l
+GROUP BY s.store_id;
+
+
+CREATE OR REFRESH MATERIALIZED VIEW gold_postcode4
+COMMENT "Centre point per 4-digit postcode (latest download). Source: CBS / PDOK, CC BY 4.0."
+AS SELECT
+  pc4,
+  max_by(latitude, fetched_at) AS latitude,
+  max_by(longitude, fetched_at) AS longitude,
+  max_by(source_year, fetched_at) AS source_year
+FROM silver_pc4_snapshots
+GROUP BY pc4;
+
+
+-- The 10 nearest stores for every 4-digit postcode, as the crow flies
+-- (haversine formula, earth radius 6371 km). Precomputed, so the dashboard
+-- only has to filter on a postcode.
+CREATE OR REFRESH MATERIALIZED VIEW gold_store_distance
+COMMENT "Per 4-digit postcode: the 10 nearest Rituals stores with straight-line distance in km."
+AS WITH pairs AS (
+  SELECT
+    p.pc4,
+    s.store_id,
+    s.store_name,
+    s.street_address,
+    s.postal_code,
+    s.city,
+    s.opening_hours,
+    s.url,
+    2 * 6371 * asin(sqrt(
+      pow(sin(radians(s.latitude - p.latitude) / 2), 2)
+      + cos(radians(p.latitude)) * cos(radians(s.latitude)) * pow(sin(radians(s.longitude - p.longitude) / 2), 2)
+    )) AS distance_km
+  FROM gold_postcode4 p
+  CROSS JOIN gold_stores s
+  WHERE s.is_listed
+)
+SELECT
+  pc4,
+  ROW_NUMBER() OVER (PARTITION BY pc4 ORDER BY distance_km) AS nearest_rank,
+  store_id,
+  store_name,
+  street_address,
+  postal_code,
+  city,
+  ROUND(distance_km, 1) AS distance_km,
+  opening_hours,
+  url
+FROM pairs
+QUALIFY ROW_NUMBER() OVER (PARTITION BY pc4 ORDER BY distance_km) <= 10;

@@ -132,6 +132,34 @@
         "WHERE is_new_launch\n",
         "ORDER BY first_seen_at DESC"
       ]
+    },
+    {
+      "name": "ds_nearest_stores",
+      "displayName": "Nearest stores per postcode",
+      "queryLines": [
+        "SELECT pc4,\n",
+        "       nearest_rank,\n",
+        "       store_name AS store,\n",
+        "       concat(street_address, ', ', postal_code, ' ', city) AS address,\n",
+        "       distance_km,\n",
+        "       opening_hours,\n",
+        "       url AS store_page\n",
+        "FROM workspace.rituals_radar.gold_store_distance\n",
+        "ORDER BY pc4, nearest_rank"
+      ]
+    },
+    {
+      "name": "ds_product_check",
+      "displayName": "Uukumwe product: in-store check",
+      "queryLines": [
+        "SELECT product_name AS product,\n",
+        "       CASE WHEN is_available THEN '✅ Online in stock' ELSE concat('❌ Online: ', availability) END AS online_status,\n",
+        "       price,\n",
+        "       url AS check_in_store\n",
+        "FROM workspace.rituals_radar.gold_stock_current\n",
+        "WHERE collection = 'uukumwe'\n",
+        "ORDER BY product_name"
+      ]
     }
   ],
   "pages": [
@@ -866,6 +894,272 @@
             "y": 15,
             "width": 6,
             "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "stores",
+      "displayName": "Stores",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "stores_header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Stores near you\n\nPick the first 4 digits of a postcode to see the 10 nearest Rituals stores (straight-line distance). Store stock itself is not public: pick a Uukumwe product and open its link, then click *Of controleer beschikbaarheid in de winkel* on rituals.com.\n\nPostcode areas: CBS / PDOK (CC BY 4.0). Store data: rituals.com store pages."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_pc4",
+            "queries": [
+              {
+                "name": "ds_nearest_stores_pc4",
+                "query": {
+                  "datasetName": "ds_nearest_stores",
+                  "fields": [
+                    {
+                      "name": "pc4",
+                      "expression": "`pc4`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "pc4",
+                    "displayName": "Postcode (4 digits)",
+                    "queryName": "ds_nearest_stores_pc4"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Postcode (4 digits)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_product",
+            "queries": [
+              {
+                "name": "ds_product_check_product",
+                "query": {
+                  "datasetName": "ds_product_check",
+                  "fields": [
+                    {
+                      "name": "product",
+                      "expression": "`product`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "product",
+                    "displayName": "Uukumwe product",
+                    "queryName": "ds_product_check_product"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Uukumwe product"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 3,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "tbl_nearest_stores",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_nearest_stores",
+                  "fields": [
+                    {
+                      "name": "nearest_rank",
+                      "expression": "`nearest_rank`"
+                    },
+                    {
+                      "name": "store",
+                      "expression": "`store`"
+                    },
+                    {
+                      "name": "address",
+                      "expression": "`address`"
+                    },
+                    {
+                      "name": "distance_km",
+                      "expression": "`distance_km`"
+                    },
+                    {
+                      "name": "opening_hours",
+                      "expression": "`opening_hours`"
+                    },
+                    {
+                      "name": "store_page",
+                      "expression": "`store_page`"
+                    },
+                    {
+                      "name": "pc4",
+                      "expression": "`pc4`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "nearest_rank",
+                    "displayName": "#"
+                  },
+                  {
+                    "fieldName": "store",
+                    "displayName": "Store"
+                  },
+                  {
+                    "fieldName": "address",
+                    "displayName": "Address"
+                  },
+                  {
+                    "fieldName": "distance_km",
+                    "displayName": "Distance (km)"
+                  },
+                  {
+                    "fieldName": "opening_hours",
+                    "displayName": "Opening hours"
+                  },
+                  {
+                    "fieldName": "store_page",
+                    "displayName": "Store page"
+                  },
+                  {
+                    "fieldName": "pc4",
+                    "displayName": "Postcode"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Nearest stores"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "tbl_product_check",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_product_check",
+                  "fields": [
+                    {
+                      "name": "product",
+                      "expression": "`product`"
+                    },
+                    {
+                      "name": "online_status",
+                      "expression": "`online_status`"
+                    },
+                    {
+                      "name": "price",
+                      "expression": "`price`"
+                    },
+                    {
+                      "name": "check_in_store",
+                      "expression": "`check_in_store`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "product",
+                    "displayName": "Product"
+                  },
+                  {
+                    "fieldName": "online_status",
+                    "displayName": "Online"
+                  },
+                  {
+                    "fieldName": "price",
+                    "displayName": "Price (€)"
+                  },
+                  {
+                    "fieldName": "check_in_store",
+                    "displayName": "Check store stock on rituals.com"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Check this product in a store"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 5
           }
         }
       ]

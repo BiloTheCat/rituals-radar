@@ -10,6 +10,8 @@ from radar.sample_data import generate, write_sample_data
 BRONZE_GLOBS = {  # must match the Auto Loader paths in 01_bronze.py
     "rituals_stock": "rituals_stock/*/*.jsonl",
     "rituals_catalog": "rituals_catalog/*/*.jsonl",
+    "rituals_stores": "rituals_stores/*/*.jsonl",
+    "reference_pc4": "reference_pc4/*/*.jsonl",
 }
 
 
@@ -19,7 +21,7 @@ def test_generation_is_deterministic(cfg):
 
 def test_sample_data_shape(cfg):
     data = generate(cfg, days=30, seed=42, now=NOW)
-    assert set(data) == {"rituals_stock", "rituals_catalog"}
+    assert set(data) == {"rituals_stock", "rituals_catalog", "rituals_stores", "reference_pc4"}
     every = [r for records in data.values() for r in records]
     assert all(r["is_sample"] is True for r in every)
 

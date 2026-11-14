@@ -17,6 +17,7 @@ import requests
 TARGETS = {
     "PyPI (always allowed)": "https://pypi.org/simple/requests/",
     "rituals.com (stock + sitemap)": "https://www.rituals.com/robots.txt",
+    "PDOK (postcode areas)": "https://api.pdok.nl/cbs/postcode4/ogc/v1/collections?f=json",
 }
 
 results = []

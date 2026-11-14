@@ -1,6 +1,7 @@
 # Collects data and lands it in the Databricks volume.
 #   every 3 hours : stock check of the watchlist
 #   daily 05:45   : sitemap snapshot (catalogue)
+#   monday 04:30  : store pages + postcode areas (reference data)
 # Secrets: Settings -> Secrets and variables -> Actions (see docs/HANDLEIDING.md).
 name: collect
 
@@ -8,12 +9,13 @@ on:
   schedule:
     - cron: "15 */3 * * *"   # stock (UTC)
     - cron: "45 5 * * *"     # catalog (UTC)
+    - cron: "30 4 * * 1"     # stores + postcodes, Mondays (UTC)
   workflow_dispatch:
     inputs:
       command:
         description: What to collect
         type: choice
-        options: [stock, catalog, all]
+        options: [stock, catalog, reference, all]
         default: all
 
 concurrency:
@@ -48,10 +50,11 @@ jobs:
           case "$EVENT_NAME:$SCHEDULE" in
             workflow_dispatch:*) command="$REQUESTED" ;;
             "schedule:45 5 * * *") command="catalog" ;;
+            "schedule:30 4 * * 1") command="reference" ;;
             *) command="stock" ;;
           esac
           case "$command" in
-            stock|catalog|all) echo "command=$command" >> "$GITHUB_OUTPUT" ;;
+            stock|catalog|reference|all) echo "command=$command" >> "$GITHUB_OUTPUT" ;;
             *) echo "Unknown command: $command" && exit 1 ;;
           esac
 

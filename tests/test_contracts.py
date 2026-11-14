@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from conftest import NOW, REPO_ROOT
-from radar.records import CATALOG_FIELDS, STOCK_FIELDS, conform
+from radar.records import CATALOG_FIELDS, PC4_FIELDS, STOCK_FIELDS, STORE_FIELDS, conform
 from radar.sample_data import generate
 
 TRANSFORMATIONS = REPO_ROOT / "src" / "pipeline" / "transformations"
@@ -36,6 +36,8 @@ def ddl(const: str) -> dict[str, str]:
 CONTRACTS = [
     ("STOCK_COLUMNS", STOCK_FIELDS, "rituals_stock"),
     ("CATALOG_COLUMNS", CATALOG_FIELDS, "rituals_catalog"),
+    ("STORE_COLUMNS", STORE_FIELDS, "rituals_stores"),
+    ("PC4_COLUMNS", PC4_FIELDS, "reference_pc4"),
 ]
 
 

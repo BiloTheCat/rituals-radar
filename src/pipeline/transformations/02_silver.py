@@ -81,3 +81,37 @@ def silver_catalog_snapshots():
         .dropDuplicatesWithinWatermark(["product_id", "run_id"])
         .drop("_rescued_data")
     )
+
+
+# ---------------------------------------------------------------------------
+# Stores and postcode areas (reference data)
+# ---------------------------------------------------------------------------
+@dp.table(
+    name="silver_store_snapshots",
+    comment="Store page snapshots with valid coordinates, deduplicated per crawl.",
+)
+@dp.expect_or_drop("has_store_id", "store_id IS NOT NULL")
+@dp.expect_or_drop("has_coordinates", "latitude BETWEEN 50 AND 54 AND longitude BETWEEN 3 AND 8")  # the Netherlands
+@dp.expect("has_postal_code", "postal_code IS NOT NULL")
+def silver_store_snapshots():
+    return (
+        without_sample(spark.readStream.table("bronze_rituals_stores"))  # noqa: F821
+        .withWatermark("crawled_at", LATE_DATA_WINDOW)
+        .dropDuplicatesWithinWatermark(["store_id", "run_id"])
+        .drop("_rescued_data")
+    )
+
+
+@dp.table(
+    name="silver_pc4_snapshots",
+    comment="Centre points of 4-digit postcode areas per download.",
+)
+@dp.expect_or_drop("valid_pc4", "pc4 RLIKE '^[1-9][0-9]{3}$'")
+@dp.expect_or_drop("has_coordinates", "latitude BETWEEN 50 AND 54 AND longitude BETWEEN 3 AND 8")
+def silver_pc4_snapshots():
+    return (
+        without_sample(spark.readStream.table("bronze_reference_pc4"))  # noqa: F821
+        .withWatermark("fetched_at", LATE_DATA_WINDOW)
+        .dropDuplicatesWithinWatermark(["pc4", "run_id"])
+        .drop("_rescued_data")
+    )

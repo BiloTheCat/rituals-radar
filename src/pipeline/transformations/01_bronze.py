@@ -44,6 +44,33 @@ CATALOG_COLUMNS = (
     "collection STRING",
     "is_sample BOOLEAN",
 )
+STORE_COLUMNS = (
+    "run_id STRING",
+    "crawled_at TIMESTAMP",
+    "store_id STRING",
+    "store_name STRING",
+    "street_address STRING",
+    "postal_code STRING",
+    "city STRING",
+    "country STRING",
+    "latitude DOUBLE",
+    "longitude DOUBLE",
+    "phone STRING",
+    "opening_hours STRING",
+    "url STRING",
+    "is_sample BOOLEAN",
+)
+
+PC4_COLUMNS = (
+    "run_id STRING",
+    "fetched_at TIMESTAMP",
+    "pc4 STRING",
+    "latitude DOUBLE",
+    "longitude DOUBLE",
+    "source_year INT",
+    "is_sample BOOLEAN",
+)
+
 
 def read_landing(pattern: str, columns: tuple):
     return (
@@ -73,3 +100,21 @@ def bronze_rituals_stock():
 @dp.expect("matches_contract", "_rescued_data IS NULL")
 def bronze_rituals_catalog():
     return read_landing("rituals_catalog/*/*.jsonl", CATALOG_COLUMNS)
+
+
+@dp.table(
+    name="bronze_rituals_stores",
+    comment="Raw weekly snapshots of all Rituals store pages (address, coordinates, opening hours).",
+)
+@dp.expect("matches_contract", "_rescued_data IS NULL")
+def bronze_rituals_stores():
+    return read_landing("rituals_stores/*/*.jsonl", STORE_COLUMNS)
+
+
+@dp.table(
+    name="bronze_reference_pc4",
+    comment="Raw centre points of Dutch 4-digit postcode areas (source: CBS / PDOK, CC BY 4.0).",
+)
+@dp.expect("matches_contract", "_rescued_data IS NULL")
+def bronze_reference_pc4():
+    return read_landing("reference_pc4/*/*.jsonl", PC4_COLUMNS)

@@ -36,3 +36,17 @@ resources:
             notebook_path: ../src/notebooks/03_run_collectors.py
             base_parameters:
               command: catalog
+
+    rituals_radar_collect_reference:
+      name: rituals-radar-collect-reference
+      max_concurrent_runs: 1
+      schedule:
+        quartz_cron_expression: "0 30 4 ? * MON"  # Mondays 04:30 UTC
+        timezone_id: UTC
+        pause_status: UNPAUSED
+      tasks:
+        - task_key: collect_reference
+          notebook_task:
+            notebook_path: ../src/notebooks/03_run_collectors.py
+            base_parameters:
+              command: reference

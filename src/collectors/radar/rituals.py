@@ -29,7 +29,7 @@ import requests
 from radar.config import Config
 from radar.http_client import BlockedByRobots, PoliteSession
 from radar.matching import Matcher
-from radar.records import CATALOG_FIELDS, STOCK_FIELDS, conform
+from radar.records import CATALOG_FIELDS, STOCK_FIELDS, STORE_FIELDS, conform
 from radar.util import iso, parse_iso
 
 log = logging.getLogger(__name__)
@@ -252,9 +252,8 @@ def make_session(cfg: Config) -> PoliteSession:
     )
 
 
-def fetch_catalog(cfg: Config, session: PoliteSession, matcher: Matcher, *, now: datetime, run_id: str,
-                  is_sample: bool = False) -> list[dict]:
-    """All product URLs of the configured locale, from the sitemap."""
+def fetch_sitemap_entries(cfg: Config, session: PoliteSession) -> list[tuple[str, str | None]]:
+    """All (url, lastmod) entries of the configured locale's sitemap."""
     index_url = f"{cfg.site.base_url}/sitemap.xml"
     response = session.get(index_url)
     response.raise_for_status()
@@ -267,7 +266,13 @@ def fetch_catalog(cfg: Config, session: PoliteSession, matcher: Matcher, *, now:
         response = session.get(children[0])
         response.raise_for_status()
         _, entries = parse_sitemap(response.text)
+    return entries
 
+
+def fetch_catalog(cfg: Config, session: PoliteSession, matcher: Matcher, *, now: datetime, run_id: str,
+                  is_sample: bool = False) -> list[dict]:
+    """All product URLs of the configured locale, from the sitemap."""
+    entries = fetch_sitemap_entries(cfg, session)
     records = []
     seen = set()
     for loc, lastmod in entries:
@@ -385,4 +390,92 @@ def collect_stock(cfg: Config, session: PoliteSession, matcher: Matcher, *, now:
     for r in records:
         summary[r["availability"]] = summary.get(r["availability"], 0) + 1
     log.info("Stock summary: %s", summary)
+    return records
+
+
+# ---------------------------------------------------------------------------
+# Stores (public store pages, schema.org "Store" JSON-LD)
+# ---------------------------------------------------------------------------
+STORE_URL_RE = re.compile(
+    r"^https://www\.rituals\.com/(?P<locale>[a-z]{2}-[a-z]{2})/stores/(?P<slug>[a-z0-9-]+?)(?:-(?P<sid>\d+))?$"
+)
+_DAYS = {"monday": "ma", "tuesday": "di", "wednesday": "wo", "thursday": "do", "friday": "vr",
+         "saturday": "za", "sunday": "zo"}
+_STORE_TYPES = ("Store", "LocalBusiness", "HealthAndBeautyBusiness")
+
+
+def _opening_hours(specs: object) -> str | None:
+    if isinstance(specs, dict):
+        specs = [specs]
+    if not isinstance(specs, list):
+        return None
+    parts = []
+    for spec in specs:
+        if not isinstance(spec, dict):
+            continue
+        days = spec.get("dayOfWeek")
+        days = days if isinstance(days, list) else [days]
+        for day in days:
+            key = str(day or "").rstrip("/").rsplit("/", 1)[-1].lower()
+            if key in _DAYS and spec.get("opens") and spec.get("closes"):
+                parts.append((list(_DAYS).index(key), f"{_DAYS[key]} {spec['opens']}-{spec['closes']}"))
+    return " · ".join(text for _, text in sorted(parts)) or None
+
+
+def parse_store_page(html: str) -> dict | None:
+    """Store facts from the schema.org JSON-LD on a store page (None if absent)."""
+    store = next((o for o in _iter_ld_objects(html) if any(_has_type(o, t) for t in _STORE_TYPES)), None)
+    if store is None:
+        return None
+    address = store.get("address") if isinstance(store.get("address"), dict) else {}
+    geo = store.get("geo") if isinstance(store.get("geo"), dict) else {}
+
+    def number(value):
+        try:
+            return round(float(value), 6)
+        except (TypeError, ValueError):
+            return None
+
+    return {
+        "store_name": str(store.get("name") or "").strip() or None,
+        "street_address": address.get("streetAddress"),
+        "postal_code": address.get("postalCode"),
+        "city": address.get("addressLocality"),
+        "country": address.get("addressCountry"),
+        "latitude": number(geo.get("latitude")),
+        "longitude": number(geo.get("longitude")),
+        "phone": store.get("telephone"),
+        "opening_hours": _opening_hours(store.get("openingHoursSpecification")),
+    }
+
+
+def collect_stores(cfg: Config, session: PoliteSession, *, now: datetime, run_id: str) -> list[dict]:
+    """Every store page of the configured locale listed in the sitemap."""
+    urls = []
+    for loc, _ in fetch_sitemap_entries(cfg, session):
+        match = STORE_URL_RE.match(loc)
+        if match and match.group("locale") == cfg.site.locale and loc not in urls:
+            urls.append(loc)
+    log.info("Fetching %d store pages (≈%.0f s)", len(urls), len(urls) * cfg.site.delay_seconds)
+    records = []
+    for url in urls:
+        match = STORE_URL_RE.match(url)
+        try:
+            response = session.get(url, headers={"Accept": "text/html"})
+        except (requests.RequestException, BlockedByRobots) as exc:
+            log.warning("Store page %s failed: %s", url, exc)
+            continue
+        facts = parse_store_page(response.text) if response.status_code == 200 else None
+        if not facts:
+            log.warning("No store data on %s (HTTP %s)", url, response.status_code)
+            continue
+        records.append(conform({
+            "run_id": run_id,
+            "crawled_at": iso(now),
+            "store_id": match.group("sid") or match.group("slug"),
+            **facts,
+            "url": url,
+            "is_sample": False,
+        }, STORE_FIELDS))
+    log.info("Stores: %d of %d pages parsed", len(records), len(urls))
     return records

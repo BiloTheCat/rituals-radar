@@ -20,7 +20,7 @@ from datetime import datetime, time, timedelta, timezone
 from radar.config import Config
 from radar.landing import LandingWriter
 from radar.matching import Matcher, matcher_from_config
-from radar.records import CATALOG_FIELDS, STOCK_FIELDS, conform
+from radar.records import CATALOG_FIELDS, PC4_FIELDS, STOCK_FIELDS, STORE_FIELDS, conform
 from radar.rituals import PRODUCT_ID_RE, PRODUCT_URL_RE, slug_to_name
 from radar.util import iso, utc_now
 
@@ -47,6 +47,29 @@ KNOWN_COLLECTION_SLUGS = {
         "uukumwe-collection-all-over-fragrance-mist-100ml-1121940",
         "uukumwe-collection-gift-set-1122351",
     ],
+}
+
+
+# A handful of made-up stores in big cities, and the 4-digit postcodes of those
+# city centres (approximate coordinates). Only used until the real store pages
+# and CBS postcode areas have been collected (python -m radar reference).
+SAMPLE_STORES = [
+    ("Amsterdam Centrum (sample)", "Kalverstraat 1", "1012 NX", "Amsterdam", 52.3702, 4.8913),
+    ("Amsterdam Zuid (sample)", "Beethovenstraat 1", "1077 HM", "Amsterdam", 52.3456, 4.8774),
+    ("Rotterdam Lijnbaan (sample)", "Lijnbaan 1", "3012 EA", "Rotterdam", 51.9198, 4.4747),
+    ("Utrecht Centrum (sample)", "Oudegracht 1", "3511 AA", "Utrecht", 52.0907, 5.1214),
+    ("Den Haag Centrum (sample)", "Spuistraat 1", "2511 BC", "Den Haag", 52.0786, 4.3125),
+    ("Eindhoven (sample)", "Demer 1", "5611 AA", "Eindhoven", 51.4386, 5.4787),
+    ("Groningen (sample)", "Herestraat 1", "9711 LA", "Groningen", 53.2147, 6.5672),
+    ("Arnhem (sample)", "Ketelstraat 1", "6811 EE", "Arnhem", 51.9817, 5.9105),
+    ("Zwolle (sample)", "Diezerstraat 1", "8011 RA", "Zwolle", 52.5130, 6.0937),
+    ("Maastricht (sample)", "Grote Staat 1", "6211 CT", "Maastricht", 50.8497, 5.6912),
+]
+SAMPLE_PC4 = {
+    "1012": (52.3731, 4.8926), "1053": (52.3690, 4.8650), "1077": (52.3470, 4.8780), "1102": (52.3130, 4.9530),
+    "3011": (51.9200, 4.4840), "3511": (52.0920, 5.1180), "2511": (52.0800, 4.3150), "5611": (51.4400, 5.4780),
+    "9711": (53.2190, 6.5660), "6811": (51.9830, 5.9100), "8011": (52.5110, 6.0940), "6211": (50.8510, 5.6900),
+    "2011": (52.3810, 4.6360), "3811": (52.1560, 5.3880), "4811": (51.5870, 4.7760), "7511": (52.2210, 6.8940),
 }
 
 
@@ -85,7 +108,7 @@ def _base_price(slug: str) -> float:
 
 # ---------------------------------------------------------------------------
 def generate(cfg: Config, *, days: int = 30, seed: int = 42, now: datetime | None = None) -> dict[str, list[dict]]:
-    """Return {"rituals_catalog": [...], "rituals_stock": [...]}."""
+    """Return {"rituals_catalog": [...], "rituals_stock": [...], "rituals_stores": [...], "reference_pc4": [...]}."""
     rng = random.Random(seed)
     now = (now or utc_now()).astimezone(timezone.utc).replace(microsecond=0)
     matcher = matcher_from_config(cfg)
@@ -154,6 +177,22 @@ def generate(cfg: Config, *, days: int = 30, seed: int = 42, now: datetime | Non
                     "is_sample": True,
                 }, STOCK_FIELDS))
 
+    # -- stores and postcode areas (static reference data) ----------------------
+    fetched = now.replace(hour=4, minute=30, second=0)
+    for i, (name, street, postcode, city, lat, lon) in enumerate(SAMPLE_STORES, start=1):
+        out["rituals_stores"].append(conform({
+            "run_id": "sample-reference", "crawled_at": iso(fetched), "store_id": f"sample-{i}",
+            "store_name": name, "street_address": street, "postal_code": postcode, "city": city,
+            "country": "Nederland", "latitude": lat, "longitude": lon, "phone": None,
+            "opening_hours": "ma 12:00-18:00 · di 10:00-18:00 · wo 10:00-18:00 · do 10:00-21:00 · "
+                             "vr 10:00-18:00 · za 10:00-18:00 · zo 12:00-17:00",
+            "url": f"{cfg.site.base_url}/{cfg.site.locale}/stores", "is_sample": True,
+        }, STORE_FIELDS))
+    for pc4, (lat, lon) in sorted(SAMPLE_PC4.items()):
+        out["reference_pc4"].append(conform({
+            "run_id": "sample-reference", "fetched_at": iso(fetched), "pc4": pc4, "latitude": lat,
+            "longitude": lon, "source_year": None, "is_sample": True,
+        }, PC4_FIELDS))
     return dict(out)
 
 
@@ -163,7 +202,8 @@ def write_sample_data(cfg: Config, writer: LandingWriter, *, days: int = 30, see
     data = generate(cfg, days=days, seed=seed, now=now)
     counts: dict[str, int] = {}
     for key, records in data.items():
-        time_field = {"rituals_stock": "scraped_at", "rituals_catalog": "crawled_at"}[key]
+        time_field = {"rituals_stock": "scraped_at", "rituals_catalog": "crawled_at",
+                      "rituals_stores": "crawled_at", "reference_pc4": "fetched_at"}[key]
         by_day: dict[str, list[dict]] = defaultdict(list)
         for record in records:
             by_day[record[time_field][:10]].append(record)

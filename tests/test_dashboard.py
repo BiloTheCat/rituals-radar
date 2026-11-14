@@ -15,7 +15,8 @@ from conftest import REPO_ROOT
 
 DASHBOARD = REPO_ROOT / "src" / "dashboards" / "rituals_radar.lvdash.json"
 TRANSFORMATIONS = REPO_ROOT / "src" / "pipeline" / "transformations"
-SPEC_VERSIONS = {"counter": 2, "table": 2, "bar": 3, "line": 3, "scatter": 3, "pie": 3, "area": 3}
+SPEC_VERSIONS = {"counter": 2, "table": 2, "bar": 3, "line": 3, "scatter": 3, "pie": 3, "area": 3,
+                 "filter-single-select": 2, "filter-multi-select": 2}
 NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,60}$")
 
 
@@ -75,6 +76,15 @@ def test_queries_and_encodings_line_up(dashboard):
             continue
         spec = widget["spec"]
         assert spec["version"] == SPEC_VERSIONS[spec["widgetType"]], widget["name"]
+        if spec["widgetType"].startswith("filter-"):
+            names = {q["name"] for q in widget["queries"]}
+            for binding in spec["encodings"]["fields"]:
+                assert binding["queryName"] in names, widget["name"]  # every binding needs its query
+            for q in widget["queries"]:
+                assert q["query"]["datasetName"] in datasets and q["query"]["disaggregated"] is False
+                assert {f["name"] for f in q["query"]["fields"]} >= {b["fieldName"] for b in spec["encodings"]["fields"]
+                                                                    if b["queryName"] == q["name"]}
+            continue
         (query,) = widget["queries"]
         assert query["query"]["datasetName"] in datasets
         used.add(query["query"]["datasetName"])

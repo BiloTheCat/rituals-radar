@@ -205,6 +205,18 @@ Losse producten volgen kan ook: zet hun URL in `products = [...]`.
 
 ---
 
+## De tab "Stores": winkels bij een postcode
+
+De derde dashboardpagina toont bij een postcode (de eerste 4 cijfers) de 10 dichtstbijzijnde Rituals-winkels, met adres, afstand en openingstijden. Kies ook een Uukumwe-product: de link brengt je naar de productpagina. Daar klik je op *Of controleer beschikbaarheid in de winkel* voor de voorraad per winkel. Die voorraad zelf zit bij Rituals achter een afgeschermde dienst, en daar blijft dit project vanaf.
+
+Waar de gegevens vandaan komen:
+- **Winkels:** de openbare winkelpagina's van rituals.com (116 in Nederland), elke maandag opgehaald.
+- **Postcodes:** het middelpunt van elk 4-cijferig postcodegebied, uit open data van het CBS via PDOK (licentie CC BY 4.0), ook elke maandag.
+
+**Eenmalig nodig na het deployen:** ga in GitHub naar **Actions → collect → Run workflow**, kies `reference` en start de run. Die duurt ongeveer 8 minuten. Draai daarna de pipeline (`databricks bundle run rituals_radar_refresh`). Tot die tijd toont de tab 10 voorbeeldwinkels en 16 voorbeeldpostcodes.
+
+---
+
 ## Lokaal testen (optioneel)
 
 ```bash
